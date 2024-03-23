@@ -1,0 +1,35 @@
+.logo-plant{
+    color:#30B265;
+    font-size:24px;
+}
+.logo-link{
+    color:#51566C;
+    font-size:24px;
+}
+.nav-item-button{
+    border-radius:16px;
+    font-weight: bold;
+    color:#2D3643;
+}
+.nav-item-button:hover{
+    background-color: #F1F1F1;    
+    color:black;
+}
+.btn-log{
+    border-radius:16px;
+    font-weight: bold;
+}
+.active{
+    background-color: #F1F1F1;    
+}
+.active:hover{
+    background-color:#c3c3c3;
+}
+.btn-log:hover{
+    background-color: #F1F1F1;    
+    border-color:#c3c3c3;
+    color:#2D3643;
+}
+.navbar{
+    border-bottom: 2px solid rgba(0, 0, 0, 0.3);
+}

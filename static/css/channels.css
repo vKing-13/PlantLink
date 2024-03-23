@@ -1,0 +1,12 @@
+body{
+    margin-left: 3rem;
+    margin-right: 3rem;
+}
+.btn-create{
+    height:35px;
+    background-color: #30b265;
+    font-size:15px;
+}
+.channel-header{
+    font-weight:600;
+}

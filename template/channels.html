@@ -1,0 +1,147 @@
+{% load compress %} 
+{% load static %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home</title>
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+    <link rel="stylesheet" href="{% static 'css/channels.css' %}">
+    <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
+    {% include 'navbar.html' %}
+</head>
+<body>
+    <div class="d-flex mt-2 border-2">
+        <div class="me-auto">
+            <h3 class="mb-1">Channels</h3>
+            <h6>Manage your channels details</h6>
+        </div>
+        <div class="d-flex align-items-center m-0 p-0">
+            <button type="button " class="d-flex align-items-center btn-create text-light border-0 px-2 py-0 rounded-3">
+                <span class="p-0 m-0 mb-1"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-file-earmark-plus py-0 my-0" viewBox="0 0 16 16">
+                <path d="M8 6.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V11a.5.5 0 0 1-1 0V9.5H6a.5.5 0 0 1 0-1h1.5V7a.5.5 0 0 1 .5-.5"/>
+                <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+              </svg></span>Create</button>
+        </div>
+    </div>
+
+    <div class="d-flex justify-content-between">
+        <div class="card mb-3" style="width: 340px;">
+            <div class="row g-0">
+              <div class="col-md-4 d-flex justify-content-center align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" fill="currentColor" class="bi bi-file-earmark-bar-graph-fill" viewBox="0 0 16 16">
+                    <path d="M9.293 0H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V4.707A1 1 0 0 0 13.707 4L10 .293A1 1 0 0 0 9.293 0M9.5 3.5v-2l3 3h-2a1 1 0 0 1-1-1m.5 10v-6a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v6a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5m-2.5.5a.5.5 0 0 1-.5-.5v-4a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v4a.5.5 0 0 1-.5.5zm-3 0a.5.5 0 0 1-.5-.5v-2a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v2a.5.5 0 0 1-.5.5z"/>
+                </svg>
+              </div>
+              <div class="col-md-8">
+                <div class="card-body">
+                    <p class="card-text">Total of Channels</p>
+                    <h5 class="card-title">1</h5>
+                </div>
+              </div>
+            </div>
+          </div>
+        <div class="card mb-3 border-2" style="width: 340px;">
+            <div class="row g-0">
+              <div class="col-md-4 d-flex justify-content-center align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" fill="currentColor" class="bi bi-share-fill" viewBox="0 0 16 16">
+                    <path d="M11 2.5a2.5 2.5 0 1 1 .603 1.628l-6.718 3.12a2.5 2.5 0 0 1 0 1.504l6.718 3.12a2.5 2.5 0 1 1-.488.876l-6.718-3.12a2.5 2.5 0 1 1 0-3.256l6.718-3.12A2.5 2.5 0 0 1 11 2.5"/>
+                  </svg>
+              </div>
+              <div class="col-md-8">
+                <div class="card-body">
+                    <p class="card-text">Public Channels</p>
+                    <h5 class="card-title">1</h5>
+                </div>
+              </div>
+            </div>
+          </div>
+        <div class="card mb-3 border-2" style="width: 340px;">
+            <div class="row g-0">
+              <div class="col-md-4 d-flex justify-content-center align-items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" width="70" height="70" fill="currentColor" class="bi bi-usb-symbol" viewBox="0 0 16 16">
+                    <path d="m7.792.312-1.533 2.3A.25.25 0 0 0 6.467 3H7.5v7.319a2.5 2.5 0 0 0-.515-.298L5.909 9.56A1.5 1.5 0 0 1 5 8.18v-.266a1.5 1.5 0 1 0-1 0v.266a2.5 2.5 0 0 0 1.515 2.298l1.076.461a1.5 1.5 0 0 1 .888 1.129 2.001 2.001 0 1 0 1.021-.006v-.902a1.5 1.5 0 0 1 .756-1.303l1.484-.848A2.5 2.5 0 0 0 11.995 7h.755a.25.25 0 0 0 .25-.25v-2.5a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25v2.5c0 .138.112.25.25.25h.741a1.5 1.5 0 0 1-.747 1.142L8.76 8.99a3 3 0 0 0-.26.17V3h1.033a.25.25 0 0 0 .208-.389L8.208.312a.25.25 0 0 0-.416 0"/>
+                  </svg>
+              </div>
+              <div class="col-md-8">
+                <div class="card-body">
+                    <p class="card-text">Registered Sensors</p>
+                    <h5 class="card-title">1</h5>
+                </div>
+              </div>
+            </div>
+          </div>
+    </div>
+    <div class="border rounded border-2" style="height: 430px; overflow-x: auto;">
+        <div class="container-fluid border-bottom border-secondary-subtle border-2">
+          <div class="row">
+              <div class="col-3 px-3 py-2 channel-header">
+                  Channel Name
+              </div>
+              <div class="col-2 px-3 py-2 channel-header">
+                  Description
+              </div>
+              <div class="col-2 px-3 py-2 channel-header text-center">
+                  Date Created
+              </div>
+              <div class="col-2 px-3 py-2 channel-header text-center">
+                  Date Modified
+              </div>
+              <div class="col-2 px-3 py-2 channel-header text-center">
+                  Sensors
+              </div>
+              <div class="col-1 px-3 py-2 channel-header text-center">
+                  Action
+              </div>
+          </div>
+        </div>
+        <div class="container-fluid border-bottom border-secondary-subtle border-2">
+          <div class="row">
+              <div class="col px-3 py-2 channel-header">
+                Soil 001
+              </div>
+              <div class="col-2 px-3 py-2 ">
+                First soil research
+              </div>
+              <div class="col-2 px-3 py-2  text-center">
+                14/06/23
+              </div>
+              <div class="col-2 px-3 py-2  text-center">
+                14/06/23
+              </div>
+              <div class="col-2 px-3 py-2  text-center">
+                1
+              </div>
+              <div class="col-1 px-2 py-2  text-center d-flex align-items-center justify-content-around">
+                <span class="p-0 m-0 mx-1 btn ">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-eye-fill" viewBox="0 0 16 16">
+                    <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0"/>
+                    <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8m8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7"/>
+                  </svg>
+                </span>
+                <span class="p-0 m-0 mx-1 btn ">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-pencil-fill" viewBox="0 0 16 16">
+                    <path d="M12.854.146a.5.5 0 0 0-.707 0L10.5 1.793 14.207 5.5l1.647-1.646a.5.5 0 0 0 0-.708zm.646 6.061L9.793 2.5 3.293 9H3.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.5h.5a.5.5 0 0 1 .5.5v.207zm-7.468 7.468A.5.5 0 0 1 6 13.5V13h-.5a.5.5 0 0 1-.5-.5V12h-.5a.5.5 0 0 1-.5-.5V11h-.5a.5.5 0 0 1-.5-.5V10h-.5a.5.5 0 0 1-.175-.032l-.179.178a.5.5 0 0 0-.11.168l-2 5a.5.5 0 0 0 .65.65l5-2a.5.5 0 0 0 .168-.11z"/>
+                  </svg>
+                </span>
+                <span class="p-0 m-0 mx-1 btn ">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" class="bi bi-trash-fill" viewBox="0 0 16 16">
+                    <path d="M2.5 1a1 1 0 0 0-1 1v1a1 1 0 0 0 1 1H3v9a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V4h.5a1 1 0 0 0 1-1V2a1 1 0 0 0-1-1H10a1 1 0 0 0-1-1H7a1 1 0 0 0-1 1zm3 4a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 .5-.5M8 5a.5.5 0 0 1 .5.5v7a.5.5 0 0 1-1 0v-7A.5.5 0 0 1 8 5m3 .5v7a.5.5 0 0 1-1 0v-7a.5.5 0 0 1 1 0"/>
+                  </svg>
+                </span>
+              </div>
+          </div>
+        </div>
+        {% include 'channel_table_row.html' with channel_name="Soil 002" description="Second soil research" date_created="14/06/23" date_modified="14/06/23" sensors_count="2" %}
+        {% include 'channel_table_row.html' with channel_name="Soil 003" description="Third soil research" date_created="14/06/23" date_modified="14/06/23" sensors_count="3" %}
+
+    </div>
+    
+    
+    
+    
+</body>
+</html>

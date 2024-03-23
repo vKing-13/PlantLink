@@ -1,0 +1,26 @@
+{% load static %} 
+<link rel="stylesheet" href="{% static 'css/navbar.css' %}">
+
+<nav class="navbar navbar-expand-lg navbar-light">
+    <div class="container-fluid px-0 py-2">
+      <a class="navbar-brand fw-bold fst-italic" href="#"><span class="logo-plant">Plant</span><span class="logo-link">Link</span></a>
+      <div class="d-flex" id="navbarSupportedContent">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+            <li class="nav-item">
+                <a class="nav-link nav-item-button mx-1 py-2 px-4 {% if request.path == '/home/' %}active{% endif %} " aria-current="{% if request.path == '/login/' %}'page'{% else %}'false'{% endif %}" href="{% url 'home' %}">Home</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link nav-item-button mx-1 px-4 {% if request.path == '/mychannel/' %}active{% endif %} " aria-current="{% if request.path == '/mychannel/' %}'page'{% else %}'false'{% endif %}" href="{% url 'channels' %}">My Channel</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link nav-item-button mx-1 px-4 {% if request.path == '/mysensor/' %}active{% endif %} " aria-current="{% if request.path == '/mysensor/' %}'page'{% else %}'false'{% endif %}" href="#">My Sensor</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link nav-item-button mx-1 px-4 {% if request.path == '/aboutus/' %}active{% endif %}" aria-current="{% if request.path == '/aboutus/' %}'page'{% else %}'false'{% endif %}" href="#">About Us</a>
+            </li>
+            <a class="btn btn-dark btn-log mx-1 px-4 me-0 {% if request.path == '/login/' %}active{% endif %}" role="button" aria-current="{% if request.path == '/login/' %}'page'{% else %}'false'{% endif %}" href="#">Login</a>
+        </ul>
+      </div>
+      
+    </div>
+  </nav>
