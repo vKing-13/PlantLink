@@ -72,7 +72,6 @@ def post_ph_sensor_data(request):
                         'ph_value': ph_value_formatted,
                         'timestamp': timestamp
                     }
-            
                 
                 db, collection = connect_to_mongodb('sensor','PH_data')
                 if db is not None and collection is not None:
@@ -112,8 +111,6 @@ def post_humid_temp_sensor_data(request):
                         'temperature_value': temperature_value_formatted,
                         'timestamp': timestamp
                     }
-            
-                
                 db, collection = connect_to_mongodb('sensor','humid_temperature_data')
                 if db is not None and collection is not None:
                     print("Connected to MongoDB successfully.")
@@ -129,6 +126,36 @@ def post_humid_temp_sensor_data(request):
     else:
         return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
 
+from pymongo import MongoClient
+def check_ip(ip_address):
+    mongo_uri = 'mongodb+srv://vicolee1363:KHw5zZkg8JirjK0E@cluster0.c0yyh6f.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
 
+    try:
+        # Create a new client and connect to the server
+        client = MongoClient(mongo_uri)
+        db = client.sensor
+        collection = db['permitted_ips']
+        result = collection.find_one({'ip': ip_address})
+
+        client.close()
+
+        # Debug print to check if data is retrieved
+        return result
+    except Exception as e:
+        # If an error occurs during MongoDB connection or data retrieval
+        print(f"Error: {str(e)}")
+        return False
+    
+
+def another_view(request):
+    ip_to_check = '192.168.100.49'  # Example IP address to check
+
+    # Call the is_ip_permitted function to check if the IP is permitted
+    is_permitted = check_ip(ip_to_check)
+    
+    if is_permitted:
+        return HttpResponse("IP is permitted.")
+    else:
+        return HttpResponse("IP is not permitted.")
 
     
