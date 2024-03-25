@@ -70,7 +70,45 @@ def post_ph_sensor_data(request):
     else:
         return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
 
+@csrf_exempt
+def post_humid_temp_sensor_data(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            humidity_value = data.get('humidity')
+            temperature_value = data.get('temperature')
+            ip_address = data.get('IP')
+            print(f"Received pH value: {humidity_value}")
+            print(f"Received pH value: {temperature_value}")
+            print(f"Received IP address: {ip_address}")
 
+            # to  check the ip is whitelisted
+            is_permitted=check_ip(ip_address)
+            if is_permitted:
+                humidity_value_formatted = f'{humidity_value:.2f}'
+                temperature_value_formatted = f'{temperature_value:.2f}'
+                timestamp = datetime.now()
+                doc = {
+                        'humidity_value': humidity_value_formatted,
+                        'temperature_value': temperature_value_formatted,
+                        'timestamp': timestamp
+                    }
+
+
+                db, collection = connect_to_mongodb('sensor','humid_temperature_data')
+                if db is not None and collection is not None:
+                    print("Connected to MongoDB successfully.")
+                    # Use db and collection objects for further operations
+                    # For example, insert data into collection
+                    insertion_result = collection.insert_one(doc)
+                    print(f"Inserted document ID: {insertion_result.inserted_id}")
+                else:
+                    print("Error connecting to MongoDB.")
+            return JsonResponse({'message': 'humidity and temperature data received successfully'}, status=200)
+        except json.JSONDecodeError as e:
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+    else:
+        return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
 
 from pymongo import MongoClient
 def check_ip(ip_address):
