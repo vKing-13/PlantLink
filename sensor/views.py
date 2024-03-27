@@ -50,8 +50,8 @@ def post_ph_sensor_data(request):
                 ph_value_formatted = f'{ph_value:.4f}'
                 timestamp = datetime.now()
                 doc = {
-                        'ph_value': ph_value,
-                        'timestamp': ph_value_formatted
+                        'ph_value': ph_value_formatted,
+                        'timestamp': timestamp
                     }
             
                 
