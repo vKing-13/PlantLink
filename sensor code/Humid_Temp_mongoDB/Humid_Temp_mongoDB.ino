@@ -23,7 +23,7 @@ void setup() {
   Serial.begin(9600);
   delay(1000);  // Give some time to open the serial monitor
   Serial.println("Connecting to WiFi...");
-  
+
   // Connect to WiFi network
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
@@ -43,14 +43,14 @@ void loop() {
     float humidityValue = 0;
     float temperatureValue = 0;
     int validReadings = 0;
-    
+
     // Take 10 sample readings and calculate average
     for (int i = 0; i < 10; i++) {
       delay(1000);  // Delay 1 second between readings
-      
+
       float humidity = dht.readHumidity();
       float temperature = dht.readTemperature();
-      
+
       // Check if readings are valid (not NaN)
       if (!isnan(humidity) && !isnan(temperature)) {
         humidityValue += humidity;
@@ -62,12 +62,12 @@ void loop() {
     if (validReadings > 0) {
       avgHumidity = humidityValue / validReadings;
       avgTemperature = temperatureValue / validReadings;
-      
+
       Serial.print("Average Humidity: ");
       Serial.println(avgHumidity);
       Serial.print("Average Temperature: ");
       Serial.println(avgTemperature);
-      
+
       // Send humidity and temperature data to Django server
 
       // Construct JSON data for sending to server
@@ -75,7 +75,7 @@ void loop() {
       jsonDoc["humidity"] = avgHumidity;
       jsonDoc["temperature"] = avgTemperature;
       jsonDoc["IP"] = WiFi.localIP().toString();
-      
+
       String jsonData;
       serializeJson(jsonDoc, jsonData);
 
