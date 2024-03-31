@@ -6,7 +6,7 @@ import json
 from datetime import datetime
 from pymongo import MongoClient
 
-from .mongo_setup import connect_to_mongodb         #TO CONNECT TO MONGODB AND GET DB AND COLLECTION
+from main.mongo_setup import connect_to_mongodb         #TO CONNECT TO MONGODB AND GET DB AND COLLECTION
 
 # Create your views here.
 @csrf_exempt

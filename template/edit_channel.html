@@ -1,0 +1,38 @@
+{% load compress %} 
+{% load static %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+    <link rel="stylesheet" href="{% static 'css/edit_channel.css' %}">
+    <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
+
+</head>
+<body>
+    <h1>Edit Channel</h1>
+    <form method="POST">
+        {% csrf_token %}
+        <label for="channel_name">Channel Name:</label><br>
+        <input type="text" id="channel_name" name="channel_name" value="{{ channel_name }}"><br><br>
+        
+        <label for="description">Description:</label><br>
+        <textarea id="description" name="description">{{ description }}</textarea><br><br>
+        
+        <label for="location">Location:</label><br>
+        <input type="text" id="location" name="location" value="{{ location }}"><br><br>
+        
+        <label for="privacy">Privacy:</label><br>
+        <select id="privacy" name="privacy">
+            <option value="public" {% if privacy == 'public' %} selected {% endif %}>Public</option>
+            <option value="private" {% if privacy == 'private' %} selected {% endif %}>Private</option>
+        </select><br><br>
+        
+        <input type="submit" value="Save Changes">
+    </form>
+</body>
+</html>
