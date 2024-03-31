@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from bson import ObjectId
 from django.http import HttpResponse, JsonResponse
 from main.mongo_setup import connect_to_mongodb
@@ -68,8 +68,80 @@ def view_channel(request,channel_id):
         print("Error connecting to MongoDB.")
         # show error 
 
-def edit_channel(request,channel_id):
-    print("test edit")
-
 def delete_channel(request,channel_id):
-    print("test delete")
+    _id=ObjectId(channel_id)
+    db, collection = connect_to_mongodb("channel","dashboard")
+    if db is not None and collection is not None:
+        channel=collection.find_one({"_id":_id})
+        if channel:
+            collection.delete_one({"_id":_id})
+            return redirect('channels')
+        else:
+            return JsonResponse({"success": False, "error": "Document not found"})
+    else:
+        print("Error connecting to MongoDB.")
+
+def edit_channel(request, channel_id):
+    if request.method == 'POST':
+        # Fetch form data
+        channel_name = request.POST.get('channel_name')
+        description = request.POST.get('description')
+        location = request.POST.get('location')
+        privacy = request.POST.get('privacy')
+        
+        # Connect to MongoDB
+        db, collection = connect_to_mongodb('Channel', 'dashboard')
+        
+        if db is not None and collection is not None:
+            # Convert channel_id to ObjectId
+            _id = ObjectId(channel_id)
+            
+            # Update channel document in MongoDB
+            result = collection.update_one(
+                {"_id": _id},
+                {"$set": {
+                    "channel_name": channel_name,
+                    "description": description,
+                    "location": location,
+                    "privacy": privacy
+                }}
+            )
+            
+            if result.modified_count > 0:
+                # Channel updated successfully
+                return redirect('view_channel', channel_id=channel_id)
+            else:
+                # Handle if update operation failed
+                return JsonResponse({"success": False, "error": "Failed to update channel"})
+        else:
+            # Handle MongoDB connection error
+            return JsonResponse({"success": False, "error": "Error connecting to MongoDB"})
+    else:
+        # Fetch channel details from MongoDB to pre-fill the form
+        db, collection = connect_to_mongodb('Channel', 'dashboard')
+        
+        if db is not None and collection is not None:
+            _id = ObjectId(channel_id)
+            channel = collection.find_one({"_id": _id})
+            
+            if channel:
+                channel_name=channel.get('channel_name','')
+                description=channel.get('description','')
+                location=channel.get('location','')
+                privacy=channel.get('privacy','')
+                context={
+                    "channel_name": channel_name,
+                    "description": description,
+                    "location": location,
+                    "privacy": privacy
+                }
+
+
+                # Render the edit form with channel data
+                return render(request, 'edit_channel.html', context)
+            else:
+                # Handle if channel not found in MongoDB
+                return JsonResponse({"success": False, "error": "Channel not found"})
+        else:
+            # Handle MongoDB connection error
+            return JsonResponse({"success": False, "error": "Error connecting to MongoDB"})

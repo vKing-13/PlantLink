@@ -5,5 +5,5 @@ urlpatterns = [
     # path('', views.dashboard, name='dashboard'),
     path('<str:channel_id>/', views.view_channel, name="view_channel"),
     path('<str:channel_id>/edit', views.edit_channel, name="edit_channel"),
-    path('<str:channel_id>/delete_channel', views.delete_channel, name="delete_channel")
+    path('<str:channel_id>/delete', views.delete_channel, name="delete_channel")
 ]
