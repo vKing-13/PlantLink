@@ -97,8 +97,8 @@ def post_humid_temp_sensor_data(request):
             humidity_value = data.get('humidity')
             temperature_value = data.get('temperature')
             ip_address = data.get('IP')
-            print(f"Received pH value: {humidity_value}")
-            print(f"Received pH value: {temperature_value}")
+            print(f"Received humidity value: {humidity_value}")
+            print(f"Received temperature value: {temperature_value}")
             print(f"Received IP address: {ip_address}")
             
             # to  check the ip is whitelisted
