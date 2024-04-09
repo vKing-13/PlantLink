@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect
 from bson import ObjectId
 from django.http import HttpResponse, JsonResponse
+from dashboard.forms import ChannelForm
 from main.mongo_setup import connect_to_mongodb
 from datetime import datetime
 import pytz
@@ -133,7 +134,7 @@ def edit_channel(request, channel_id):
         if db is not None and collection is not None:
             # Convert channel_id to ObjectId
             _id = ObjectId(channel_id)
-            
+            current_date = datetime.now().strftime('%d/%m/%Y')
             # Update channel document in MongoDB
             result = collection.update_one(
                 {"_id": _id},
@@ -141,7 +142,8 @@ def edit_channel(request, channel_id):
                     "channel_name": channel_name,
                     "description": description,
                     "location": location,
-                    "privacy": privacy
+                    "privacy": privacy,
+                    "date_modified":current_date
                 }}
             )
             
@@ -183,3 +185,39 @@ def edit_channel(request, channel_id):
         else:
             # Handle MongoDB connection error
             return JsonResponse({"success": False, "error": "Error connecting to MongoDB"})
+        
+def create_channel(request):
+    if request.method == 'POST':
+        form = ChannelForm(request.POST)
+        if form.is_valid():
+            # Connect to MongoDB
+            db, collection = connect_to_mongodb('Channel', 'dashboard')
+            if db is not None and collection is not None:
+                # Create a new channel data dictionary
+                current_date = datetime.now().strftime('%d/%m/%Y')
+                new_channel = {
+                    'channel_name': form.cleaned_data['channel_name'],
+                    'description': form.cleaned_data['description'],
+                    'location': form.cleaned_data['location'],
+                    'privacy': form.cleaned_data['privacy'],
+                    'user_id':"12345",
+                    "date_created":current_date,
+                    "date_modified":current_date,
+                }
+                # Insert the new channel data into MongoDB
+                result = collection.insert_one(new_channel)
+                
+                if result.inserted_id:
+                    # Redirect to the channels page or any other URL upon successful insertion
+                    return redirect('view_channel', channel_id=result.inserted_id)
+                else:
+                    # Handle if insertion failed
+                    return JsonResponse({"success": False, "error": "Failed to insert channel data"})
+            else:
+                # Handle MongoDB connection error
+                return JsonResponse({"success": False, "error": "Error connecting to MongoDB"})
+    else:
+        form = ChannelForm()
+
+    context = {'form': form}
+    return render(request, 'create_channel.html', context)
