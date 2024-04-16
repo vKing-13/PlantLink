@@ -96,6 +96,7 @@ def view_channel(request,channel_id):
                 "humid_values": humid_values,
                 "temp_values":temp_values,
                 "timestamps_humid_temp":timestamps_humid_temp,
+                "channel_id":channel_id,
             }
             # Render a template or return JSON response with the document data
             return render(request, 'dashboard.html',context)
@@ -221,3 +222,57 @@ def create_channel(request):
 
     context = {'form': form}
     return render(request, 'create_channel.html', context)
+
+def add_sensor(request, channel_id):
+    if request.method == 'POST':
+        # Form 1: Generate API Key
+        if 'generate_api_key' in request.POST:
+            # Logic to generate API key (random string or algorithm)
+            # For demonstration purposes, I'll use a simple random string
+            api_key = generate_api_key()
+
+            # Pass the generated API key back to the template via JSON response
+            return JsonResponse({'api_key': api_key})
+
+        # Form 2: Sensor Details
+        elif 'sensor_details' in request.POST:
+            form = ChannelForm(request.POST)
+            if form.is_valid():
+                # Connect to MongoDB
+                db, collection = connect_to_mongodb('Sensor', 'sensor_data')
+                if db is not None and collection is not None:
+                    # Create a new sensor data dictionary
+                    current_date = datetime.now().strftime('%d/%m/%Y')
+                    new_sensor = {
+                        'channel_id': channel_id,
+                        'sensor_name': form.cleaned_data['sensor_name'],
+                        'sensor_type': form.cleaned_data['sensor_type'],
+                        'api_key': request.POST.get('api_key'),  # Get API Key from Form 1
+                        'date_created': current_date,
+                        'date_modified': current_date,
+                    }
+                    # Insert the new sensor data into MongoDB
+                    # result = collection.insert_one(new_sensor)
+                    
+                    # if result.inserted_id:
+                        # Redirect to the view_channel page upon successful insertion
+                        # return redirect('view_channel', channel_id=channel_id)
+                    print(new_sensor)
+                    # else:
+                        # Handle if insertion failed
+                        # return JsonResponse({"success": False, "error": "Failed to insert sensor data"})
+                else:
+                    # Handle MongoDB connection error
+                    return JsonResponse({"success": False, "error": "Error connecting to MongoDB"})
+
+    # GET request or invalid POST data, render the template with ChannelForm
+    form = ChannelForm()
+    context = {'form': form}
+    return render(request, 'add_sensor.html', context)
+
+def generate_api_key():
+    # Logic to generate API key (random string or algorithm)
+    # For demonstration purposes, I'll use a simple random string
+    import random
+    import string
+    return ''.join(random.choice(string.ascii_letters + string.digits) for _ in range(10))
