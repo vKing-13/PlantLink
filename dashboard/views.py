@@ -449,3 +449,174 @@ def add_sensor(request, channel_id):
 
     context = {'form': form, "channel_id": channel_id}
     return render(request, 'add_sensor.html', context)
+
+def manage_sensor(request, channel_id):
+    _id = ObjectId(channel_id)
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
+
+    if db is not None and collection is not None:
+        channel = collection.find_one({"_id": _id})
+        if channel:
+            print("Found channel")
+            sensor = channel.get('sensor', '')
+            for datapoint in sensor:
+                if 'DHT_sensor' in datapoint:
+                    dht = datapoint['DHT_sensor']
+                    dht_id=ObjectId(dht)
+                if 'PH_sensor' in datapoint:
+                    ph = datapoint['PH_sensor']
+                    ph_id=ObjectId(ph)
+        sensor_list=[]
+        if dht_id:
+            dht_db, dht_collection = connect_to_mongodb('sensor', 'DHT11')
+            if dht_db is not None and dht_collection is not None:
+                dhtsensor = dht_collection.find_one({"_id": dht_id})
+                dht_data={
+                    "sensor_id":dht,
+                    "sensor_name":dhtsensor.get('sensor_name'),
+                    "sensor_type":dhtsensor.get('sensor_type'),
+                    "sensor_data":len(dhtsensor.get('sensor_data', [])),
+                }
+                sensor_list.append(dht_data)
+        if ph_id:
+            ph_db, ph_collection = connect_to_mongodb('sensor', 'PHSensor')
+            if ph_db is not None and ph_collection is not None:
+                phsensor = ph_collection.find_one({"_id": ph_id})
+                ph_data={
+                    "sensor_id":ph,
+                    "sensor_name":phsensor.get('sensor_name'),
+                    "sensor_type":phsensor.get('sensor_type'),
+                    "sensor_data":len(phsensor.get('sensor_data', [])),
+                }
+                sensor_list.append(ph_data)
+        context={"channel_id":channel_id,"sensor":sensor_list}
+        return render(request, 'conf_sensor.html', context)
+    
+def delete_sensor(request, channel_id,sensor_id,sensor_type):
+    _id = ObjectId(channel_id)
+    sensor_id_to_delete = ObjectId(sensor_id)
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
+
+    if db is not None and collection is not None:
+        filter_criteria = {'_id': _id}
+        if sensor_type == "DHT11":
+            # Use the $pull operator to remove the specified sensor from the array
+            update_result = collection.update_one(filter_criteria, {'$pull': {'sensor': {'DHT_sensor': sensor_id_to_delete}}})
+
+            if update_result.modified_count > 0:
+                print("Sensor removed successfully.")
+            else:
+                print("No matching sensor found to remove.")
+
+            dht_db, dht_collection = connect_to_mongodb('sensor', 'DHT11')
+            delete_action=dht_collection.find_one({"_id":sensor_id_to_delete})
+            if delete_action:
+                collection.delete_one({"_id":sensor_id_to_delete})
+                return redirect('view_channel_sensor', channel_id=channel_id)
+            else:
+                return JsonResponse({"success": False, "error": "Document not found"})
+        elif sensor_type == "PHSensor":
+            # Use the $pull operator to remove the specified sensor from the array
+            update_result = collection.update_one(filter_criteria, {'$pull': {'sensor': {'PH_sensor': sensor_id_to_delete}}})
+
+            if update_result.modified_count > 0:
+                print("Sensor removed successfully.")
+            else:
+                print("No matching sensor found to remove.")
+
+            ph_db, ph_collection = connect_to_mongodb('sensor', 'PHSensor')
+            delete_action=ph_collection.find_one({"_id":sensor_id_to_delete})
+            if delete_action:
+                collection.delete_one({"_id":sensor_id_to_delete})
+                return redirect('view_channel_sensor', channel_id=channel_id)
+            else:
+                return JsonResponse({"success": False, "error": "Document not found"})
+
+def edit_sensor(request, sensor_type, sensor_id, channel_id):
+    if request.method == 'POST':
+        # Fetch form data
+        sensor_name = request.POST.get('sensorName')
+        sensor_type = request.POST.get('sensorType')
+        API_KEY = request.POST.get('ApiKey')
+
+        if sensor_type == "DHT11":
+            db, collection = connect_to_mongodb('sensor', 'DHT11')
+            if db is not None and collection is not None:
+                # Convert channel_id to ObjectId
+                _id = ObjectId(sensor_id)
+                result = collection.update_one(
+                    {"_id": _id},
+                    {"$set": {
+                        "sensor_name": sensor_name,
+                        "sensor_type": sensor_type,
+                        "API_KEY": API_KEY,
+                    }}
+                )
+                if result.modified_count > 0:
+                    # Channel updated successfully
+                    return redirect('manage_sensor', channel_id=channel_id)
+                else:
+                    # Handle if update operation failed
+                    return JsonResponse({"success": False, "error": "Failed to update channel"})
+
+        elif sensor_type == "PHSensor":
+            db, collection = connect_to_mongodb('sensor', 'PHSensor')
+            if db is not None and collection is not None:
+                # Convert channel_id to ObjectId
+                _id = ObjectId(sensor_id)
+                result = collection.update_one(
+                    {"_id": _id},
+                    {"$set": {
+                        "sensor_name": sensor_name,
+                        "sensor_type": sensor_type,
+                        "API_KEY": API_KEY,
+                    }}
+                )
+                if result.modified_count > 0:
+                    # Channel updated successfully
+                    return redirect('manage_sensor', channel_id=channel_id)
+                else:
+                    # Handle if update operation failed
+                    return JsonResponse({"success": False, "error": "Failed to update channel"})
+
+    else:
+        # Fetch channel details from MongoDB to pre-fill the form
+        if sensor_type == "DHT11":
+            db, collection = connect_to_mongodb('sensor', 'DHT11')
+            _id = ObjectId(sensor_id)
+            sensor = collection.find_one({"_id": _id})
+            if sensor:
+                sensor_name = sensor.get("sensor_name", "")
+                API_KEY = sensor.get("API_KEY", '')
+                context = {
+                    "channel_id": channel_id,
+                    "sensor_name": sensor_name,
+                    "sensor_type": sensor_type,
+                    "API_KEY": API_KEY,
+                }
+                # Render the edit form with channel data
+                return render(request, 'edit_sensor.html', context)
+            else:
+                # Handle if channel not found in MongoDB
+                return JsonResponse({"success": False, "error": "Channel not found"})
+        elif sensor_type == "PHSensor":
+            db, collection = connect_to_mongodb('sensor', 'PHSensor')
+            _id = ObjectId(sensor_id)
+            sensor = collection.find_one({"_id": _id})
+            if sensor:
+                sensor_name = sensor.get("sensor_name", "")
+                API_KEY = sensor.get("API_KEY", '')
+                context = {
+                    "channel_id": channel_id,
+                    "sensor_name": sensor_name,
+                    "sensor_type": sensor_type,
+                    "API_KEY": API_KEY,
+                }
+                # Render the edit form with channel data
+                return render(request, 'edit_sensor.html', context)
+            else:
+                # Handle if channel not found in MongoDB
+                return JsonResponse({"success": False, "error": "Channel not found"})
+
+    # Default response if request method is not 'POST'
+    return JsonResponse({"success": False, "error": "Invalid request method"})

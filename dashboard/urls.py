@@ -6,7 +6,12 @@ urlpatterns = [
     path('create_channel/', views.create_channel, name='create_channel'),
     # path('<str:channel_id>/', views.view_channel, name="view_channel"),
     path('<str:channel_id>/', views.view_channel_sensor, name="view_channel_sensor"),
-    path('<str:channel_id>/add_sensor', views.add_sensor, name="add_sensor"),
     path('<str:channel_id>/edit', views.edit_channel, name="edit_channel"),
     path('<str:channel_id>/delete', views.delete_channel, name="delete_channel"),
+
+    path('<str:channel_id>/manage_sensor', views.manage_sensor, name="manage_sensor"),
+
+    path('<str:channel_id>/edit_sensor/<str:sensor_type>/<str:sensor_id>/', views.edit_sensor, name="edit_sensor"),
+    path('<str:channel_id>/add_sensor', views.add_sensor, name="add_sensor"),
+    path('<str:channel_id>/delete_sensor/<str:sensor_type>/<str:sensor_id>/', views.delete_sensor, name="delete_sensor"),
 ]
