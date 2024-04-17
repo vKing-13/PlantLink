@@ -1,7 +1,8 @@
+import json
 from django.shortcuts import render, redirect
 from bson import ObjectId
 from django.http import HttpResponse, JsonResponse
-from dashboard.forms import ChannelForm
+from dashboard.forms import ChannelForm, SensorForm
 from main.mongo_setup import connect_to_mongodb
 from datetime import datetime
 import pytz
@@ -15,6 +16,7 @@ def channels(request):
         if channels:
             channel_list=[]
             public_channel=0
+            total_sensor=0
             for channel in channels:
                 sensor_count = len(channel.get('sensor', []))
                 channel_data={
@@ -25,6 +27,7 @@ def channels(request):
                     'date_modified':channel.get('date_modified',' '),
                     'sensor_count':sensor_count
                 }
+                total_sensor+=sensor_count
                 channel_status=channel.get('privacy',' ')
                 if(channel_status=="public"):
                     public_channel+=1
@@ -34,7 +37,8 @@ def channels(request):
             context = {
                 'channels': channel_list,
                 'channel_count':channel_count,
-                "public_channel":public_channel
+                "public_channel":public_channel,
+                "total_sensor":total_sensor,
             }
             return render(request, 'channels.html', context)
         else:
@@ -96,6 +100,7 @@ def view_channel(request,channel_id):
                 "humid_values": humid_values,
                 "temp_values":temp_values,
                 "timestamps_humid_temp":timestamps_humid_temp,
+                "channel_id":channel_id,
             }
             # Render a template or return JSON response with the document data
             return render(request, 'dashboard.html',context)
@@ -106,6 +111,156 @@ def view_channel(request,channel_id):
     else:
         print("Error connecting to MongoDB.")
         # show error 
+
+def view_channel_sensor(request,channel_id):
+    _id=ObjectId(channel_id)
+    db,collection=connect_to_mongodb('Channel','dashboard')
+    if db is not None and collection is not None:
+        channel=collection.find_one({"_id":_id})
+
+        if channel:
+            print("found channel")
+            channel_name=channel.get('channel_name','')
+            description=channel.get('description','')
+            sensor=channel.get('sensor','')
+            for datapoint in sensor:
+                dht_id=datapoint.get("DHT_sensor","")
+                ph_id=datapoint.get("PH_sensor","")
+            db_ph,collection_ph=connect_to_mongodb('sensor','PHSensor')
+            if db_ph is not None and collection_ph is not None:
+                ph_data = collection_ph.find_one({"_id":ph_id})
+                
+                ph_values=[]
+                timestamps=[]
+                
+                for data_point in ph_data:
+                    ph_value = data_point.get('ph_value', '')
+                    timestamp_str = data_point.get('timestamp', '')
+
+                    # Convert timestamp string to datetime object
+                    timestamp_obj = datetime.fromisoformat(timestamp_str)
+                    # Convert timestamp to UTC and format it
+                    formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
+
+                    # Append pH value and formatted timestamp to lists
+                    ph_values.append(ph_value)
+                    timestamps.append(formatted_timestamp)
+            db_humid_temp,collection_humid_temp=connect_to_mongodb('sensor','DHT11')
+            if db_humid_temp is not None and collection_humid_temp is not None:
+                humid_temp_data = collection_humid_temp.find_one({"_id":dht_id})
+                # humid_temp_data = collection_humid_temp.find_one({"_id":dht_id})
+                
+                humid_values=[]
+                temp_values=[]
+                timestamps_humid_temp=[]
+                
+                for data_point in humid_temp_data.get('sensor_data', []):
+                    humidity_value = data_point.get('humidity_value', '')
+                    temperature_value = data_point.get('temperature_value', '')
+
+                    # Append humidity value and temperature value to lists
+                    humid_values.append(humidity_value)
+                    temp_values.append(temperature_value)
+
+                    timestamp_str = data_point.get('timestamp', '')
+                    # Convert timestamp string to datetime object
+                    timestamp_obj = datetime.fromisoformat(timestamp_str)
+                    # Convert timestamp to UTC and format it
+                    formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
+                    timestamps_humid_temp.append(formatted_timestamp)
+            context={
+                "channel_name":channel_name,
+                "description":description,
+                "ph_values": ph_values,
+                "timestamps": timestamps,
+                "humid_values": humid_values,
+                "temp_values":temp_values,
+                "timestamps_humid_temp":timestamps_humid_temp,
+                "channel_id":channel_id,
+            }
+            # Render a template or return JSON response with the document data
+            return render(request, 'dashboard.html',context)
+
+        else:
+            return JsonResponse({"success": False, "error": "Document not found"})
+            # show error not found
+    else:
+        print("Error connecting to MongoDB.")
+        # show error 
+
+def view_channel_sensor(request, channel_id):
+    _id = ObjectId(channel_id)
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
+    if db is not None and collection is not None:
+        channel = collection.find_one({"_id": _id})
+
+        if channel:
+            print("Found channel")
+            channel_name = channel.get('channel_name', '')
+            description = channel.get('description', '')
+            sensor = channel.get('sensor', '')
+
+            ph_values = []
+            timestamps = []
+            for datapoint in sensor:
+                if 'DHT_sensor' in datapoint:
+                    dht = datapoint['DHT_sensor']
+
+                if 'PH_sensor' in datapoint:
+                    ph = datapoint['PH_sensor']
+
+            db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
+            if db_ph is not None and collection_ph is not None:
+
+                ph_id=ObjectId(ph)
+                ph_data = collection_ph.find_one({"_id": ph_id})
+                if ph_data:
+                    for data_point in ph_data.get('sensor_data', []):
+                        ph_values.append(data_point.get('ph_value',''))
+                        timestamp_obj = data_point.get('timestamp', datetime.utcnow())
+                        formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
+                        timestamps.append(formatted_timestamp)
+                else:
+                    print("No PH sensor data found for the given ID")
+
+            # Continue with other sensor data retrieval as per your requirements
+            db_humid_temp,collection_humid_temp=connect_to_mongodb('sensor','DHT11')
+            if db_humid_temp is not None and collection_humid_temp is not None:
+                dht_id=ObjectId(dht)
+                humid_temp_data = collection_humid_temp.find_one({"_id":dht_id})
+                # humid_temp_data = collection_humid_temp.find_one({"_id":dht_id})
+                
+                humid_values=[]
+                temp_values=[]
+                timestamps_humid_temp=[]
+                
+                for data_point in humid_temp_data.get('sensor_data', []):
+                    humidity_value = data_point.get('humidity_value', '')
+                    temperature_value = data_point.get('temperature_value', '')
+
+                    # Append humidity value and temperature value to lists
+                    humid_values.append(humidity_value)
+                    temp_values.append(temperature_value)
+
+                    timestamp_obj = data_point.get('timestamp', datetime.utcnow())
+                    formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
+                    timestamps_humid_temp.append(formatted_timestamp)
+            context = {
+                "channel_name":channel_name,
+                "description":description,
+                "ph_values": ph_values,
+                "timestamps": timestamps,
+                "humid_values": humid_values,
+                "temp_values":temp_values,
+                "timestamps_humid_temp":timestamps_humid_temp,
+                "channel_id":channel_id,
+            }
+
+            return render(request, 'dashboard.html', context)
+        else:
+            return JsonResponse({"success": False, "error": "Document not found"})
+    else:
+        print("Error connecting to MongoDB.")
 
 def delete_channel(request,channel_id):
     _id=ObjectId(channel_id)
@@ -200,6 +355,7 @@ def create_channel(request):
                     'description': form.cleaned_data['description'],
                     'location': form.cleaned_data['location'],
                     'privacy': form.cleaned_data['privacy'],
+                    "sensor":[],
                     'user_id':"12345",
                     "date_created":current_date,
                     "date_modified":current_date,
@@ -207,12 +363,8 @@ def create_channel(request):
                 # Insert the new channel data into MongoDB
                 result = collection.insert_one(new_channel)
                 
-                if result.inserted_id:
-                    # Redirect to the channels page or any other URL upon successful insertion
-                    return redirect('view_channel', channel_id=result.inserted_id)
-                else:
-                    # Handle if insertion failed
-                    return JsonResponse({"success": False, "error": "Failed to insert channel data"})
+                return redirect('view_channel', channel_id=result.inserted_id)
+                
             else:
                 # Handle MongoDB connection error
                 return JsonResponse({"success": False, "error": "Error connecting to MongoDB"})
@@ -221,3 +373,79 @@ def create_channel(request):
 
     context = {'form': form}
     return render(request, 'create_channel.html', context)
+
+def add_sensor(request, channel_id):
+    if request.method == 'POST':
+        channel_id = channel_id
+        API_KEY = request.POST.get('generatedApiKey')
+        sensor_name = request.POST.get('sensorNameConfirmation')
+        sensor_type = request.POST.get('sensorTypeConfirmation')
+        
+        if sensor_type == "DHT11":
+            db_dht, collection_dht = connect_to_mongodb('sensor', 'DHT11')
+            if db_dht is not None and collection_dht is not None:
+                # Add a new sensor data dictionary
+                new_sensor = {
+                    'channel_id': channel_id,
+                    'API_KEY': API_KEY,
+                    'sensor_name': sensor_name,
+                    'sensor_type': sensor_type,
+                    "sensor_data":[],
+                }
+                # Insert the new sensor data into MongoDB
+                result = collection_dht.insert_one(new_sensor)
+                
+                if result.inserted_id:
+                    # Redirect to the channels page or any other URL upon successful insertion
+                    db_channel, collection_channel = connect_to_mongodb('Channel', 'dashboard')
+                    _id=ObjectId(channel_id)
+                    filter_criteria = {'_id': _id}
+                    doc = {
+                        'DHT_sensor': result.inserted_id,
+                    }
+                    print(doc)
+                    update_result = collection_channel.update_one(filter_criteria, {'$push': {'sensor': doc}})
+                    return redirect('view_channel_sensor', channel_id=channel_id)
+                    
+                else:
+                    # Handle if insertion failed
+                    return JsonResponse({"success": False, "error": "Failed to insert channel data"})
+            else:
+                # Handle MongoDB connection error
+                return JsonResponse({"success": False, "error": "Error connecting to MongoDB"})
+        
+        elif sensor_type == "PHSensor":
+            db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
+            if db_ph is not None and collection_ph is not None:
+                # Add a new sensor data dictionary
+                new_sensor = {
+                    'channel_id': channel_id,
+                    'API_KEY': API_KEY,
+                    'sensor_name': sensor_name,
+                    'sensor_type': sensor_type,
+                    "sensor_data":[],
+                }
+                # Insert the new sensor data into MongoDB
+                result = collection_ph.insert_one(new_sensor)
+                
+                if result.inserted_id:
+                    # Redirect to the channels page or any other URL upon successful insertion
+                    db_channel, collection_channel = connect_to_mongodb('Channel', 'dashboard')
+                    _id=ObjectId(channel_id)
+                    filter_criteria = {'_id': _id}
+                    doc = {
+                        'PH_sensor': result.inserted_id,
+                    }
+                    update_result = collection_channel.update_one(filter_criteria, {'$push': {'sensor': doc}})
+                    return redirect('view_channel_sensor', channel_id=channel_id)
+                else:
+                    # Handle if insertion failed
+                    return JsonResponse({"success": False, "error": "Failed to insert channel data"})
+            else:
+                # Handle MongoDB connection error
+                return JsonResponse({"success": False, "error": "Error connecting to MongoDB"})
+    else:
+        form = SensorForm()
+
+    context = {'form': form, "channel_id": channel_id}
+    return render(request, 'add_sensor.html', context)

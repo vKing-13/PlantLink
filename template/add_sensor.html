@@ -1,0 +1,153 @@
+{% load compress %} 
+{% load static %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+    <link rel="stylesheet" href="{% static 'css/edit_channel.css' %}">
+    <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
+
+</head>
+<body>
+    <h1>Add New Sensor</h1>
+    <div class="container">
+        <div id="step1" class="step">
+            <h2>Step 1: Generate API Key</h2>
+            <form id="apiKeyForm">
+                <label for="apiKey">API Key:</label>
+                <input type="text" id="apiKey" name="apiKey" >
+                <button type="button" id="regenerateApiKey">Regenerate API Key</button>
+                <button type="button" id="copyApiKey">Copy</button>
+                <button type="button" id="nextStep1">Next</button>
+                <button type="button" id="cancelStep1"><a href="{% url "view_channel_sensor" channel_id=channel_id %}">Cancel</a></button>
+            </form>
+        </div>
+    
+        <div id="step2" class="step" style="display: none;">
+            <h2>Step 2: Sensor Details</h2>
+            <form id="sensorDetailsForm">
+                <h1 id="warning">Please fill the sensor name</h1>
+                <label for="sensorName">Sensor Name:</label>
+                <input type="text" id="sensorName" name="sensorName" required>
+                <label for="sensorType">Sensor Type:</label>
+                <select id="sensorType" name="sensorType">
+                    <option value="DHT11">DHT11</option>
+                    <option value="PHSensor">PH Sensor</option>
+                    <option value="npk">NPK</option>
+                </select>
+                <button type="button" id="nextStep2">Next</button>
+                <button type="button" id="backStep2">Back</button>
+                <button type="button" id="cancelStep1"><a href="{% url "view_channel_sensor" channel_id=channel_id %}">Cancel</a></button>
+            </form>
+        </div>
+    
+        <div id="step3" class="step" style="display: none;">
+            <h2>Step 3: Confirmation</h2>
+            <form id="confirmationForm"  method="post" action="">
+                {% csrf_token %}
+                <input type="text" id="generatedApiKey" name="generatedApiKey" hidden>
+                <input type="text" id="sensorNameConfirmation" name="sensorNameConfirmation"  hidden>
+                <input type="text" id="sensorTypeConfirmation" name="sensorTypeConfirmation" hidden>
+                <pre>
+                    <code>
+
+                    </code>
+                </pre>
+                <button type="button" id="copyConfirmation">Copy</button>
+                <button type="submit">Add Sensor</button>
+                <button type="button" id="backStep3">Back</button>
+                <button type="button" id="cancelStep1"><a href="{% url "view_channel_sensor" channel_id=channel_id %}">Cancel</a></button>
+
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // JavaScript code for handling form steps and API key generation
+    
+        // Step 1: Generate API Key
+        function generateApiKey() {
+            let apiKey = '';
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            const apiKeyLength = 15;
+            for (let i = 0; i < apiKeyLength; i++) {
+                const randomIndex = Math.floor(Math.random() * characters.length);
+                apiKey += characters.charAt(randomIndex);
+            }
+            document.getElementById('apiKey').value = apiKey;
+        }
+    
+        document.addEventListener('DOMContentLoaded', function () {
+            generateApiKey();
+        });
+    
+        // Regenerate API Key button
+        document.getElementById('regenerateApiKey').addEventListener('click', function () {
+            generateApiKey();
+        });
+    
+        // Step 2: Next button for moving to Step 2
+        document.getElementById('nextStep1').addEventListener('click', function () {
+            document.getElementById('step1').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+            document.getElementById('warning').style.display = 'none';
+        });
+        document.getElementById('sensorName').addEventListener('input', function () {
+            const nextButton = document.getElementById('nextStep2');
+        });
+        // Step 3: Next button for moving to Step 3
+        document.getElementById('nextStep2').addEventListener('click', function () {
+            const sensorName = document.getElementById('sensorName').value.trim();
+            
+            if (sensorName) {
+                document.getElementById('step2').style.display = 'none';
+                document.getElementById('step3').style.display = 'block';
+                
+                // Populate Step 3 form with data from Step 1 and Step 2
+                const apiKey = document.getElementById('apiKey').value;
+                const sensorName = document.getElementById('sensorName').value;
+                const sensorType = document.getElementById('sensorType').value;
+                
+                document.getElementById('generatedApiKey').value = apiKey;
+                document.getElementById('sensorNameConfirmation').value = sensorName;
+                document.getElementById('sensorTypeConfirmation').value = sensorType;
+                document.getElementById('warning').style.display = 'none';
+            } else {
+                document.getElementById('warning').style.display = 'block';
+            }
+        });
+    
+        // Back button for moving back to Step 1 from Step 2
+        document.getElementById('backStep2').addEventListener('click', function () {
+            document.getElementById('step2').style.display = 'none';
+            document.getElementById('step1').style.display = 'block';
+        });
+    
+        // Back button for moving back to Step 2 from Step 3
+        document.getElementById('backStep3').addEventListener('click', function () {
+            document.getElementById('step3').style.display = 'none';
+            document.getElementById('step2').style.display = 'block';
+        });
+    
+        // Copy button for copying API Key and Confirmation data
+        document.getElementById('copyApiKey').addEventListener('click', function () {
+            const apiKey = document.getElementById('apiKey');
+            apiKey.select();
+            document.execCommand('copy');
+        });
+    
+        document.getElementById('copyConfirmation').addEventListener('click', function () {
+            const confirmationData = document.getElementById('confirmationForm');
+            confirmationData.select();
+            document.execCommand('copy');
+        });
+    
+        
+    </script>
+</body>
+</html>
