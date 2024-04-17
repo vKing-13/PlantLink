@@ -126,6 +126,77 @@ def post_humid_temp_sensor_data(request):
     else:
         return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
 
+@csrf_exempt
+def post_dht_sensor_data(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            humidity_value = data.get('humidity')
+            temperature_value = data.get('temperature')
+            API_KEY = data.get('API_KEY')
+            print(f"Received humidity value: {humidity_value}")
+            print(f"Received temperature value: {temperature_value}")
+            print(f"Received API KEY: {API_KEY}")
+            
+            db, collection = connect_to_mongodb('sensor','DHT11')
+            if db is not None and collection is not None:
+                filter_criteria = {'API_KEY': API_KEY}
+                humidity_value_formatted = f'{humidity_value:.2f}'
+                temperature_value_formatted = f'{temperature_value:.2f}'
+                timestamp = datetime.now()
+                doc = {
+                        'humidity_value': humidity_value_formatted,
+                        'temperature_value': temperature_value_formatted,
+                        'timestamp': timestamp
+                    }
+                update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
+                if update_result.modified_count > 0:
+                    print("Sensor data added successfully.")
+                else:
+                    print("No document matching the filter criteria found.")
+
+            return JsonResponse({'message': 'humidity and temperature data received successfully'}, status=200)
+        except json.JSONDecodeError as e:
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+    else:
+        return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
+
+@csrf_exempt
+def post_ph_data(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            ph_value = data.get('phValue')  # Ensure 'pH' key is correctly spelled
+            API_KEY = data.get('API_KEY')
+            
+            if ph_value is None or API_KEY is None:
+                return JsonResponse({'error': 'Invalid data format'}, status=400)
+
+            print(f"Received pH value: {ph_value}")
+            print(f"Received API_KEY: {API_KEY}")
+
+            db, collection = connect_to_mongodb('sensor', 'PHSensor')
+            if db is not None and collection is not None:
+                filter_criteria = {'API_KEY': API_KEY}
+                ph_value_formatted = f'{ph_value:.4f}'
+                timestamp = datetime.now()
+                doc = {
+                    'ph_value': ph_value_formatted,
+                    'timestamp': timestamp
+                }
+                update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
+                if update_result.modified_count > 0:
+                    print("Sensor data added successfully.")
+                else:
+                    print("No document matching the filter criteria found.")
+        except json.JSONDecodeError as e:
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
+
+
 from pymongo import MongoClient
 def check_ip(ip_address):
     mongo_uri = 'mongodb+srv://vicolee1363:KHw5zZkg8JirjK0E@cluster0.c0yyh6f.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0'
