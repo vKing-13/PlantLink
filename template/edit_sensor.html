@@ -1,0 +1,70 @@
+{% load compress %} 
+{% load static %} 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Edit Sensor</title>
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+    <link rel="stylesheet" href="{% static 'css/edit_channel.css' %}">
+    <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
+
+</head>
+<body>
+    <h1>Edit Sensor</h1>
+    <div class="container">
+        <div id="step3" class="step" >
+            <form id="confirmationForm"  method="post" action="">
+                {% csrf_token %}
+                <label for="ApiKey">APi Key:</label><br>
+                <input type="text" id="ApiKey" name="ApiKey" value={{ API_KEY }} >
+                <button type="button" id="copyConfirmation">Copy</button>
+                <button type="button" id="regenerateApiKey">Regenerate API Key</button><br>
+                <label for="sensorName">Sensor name:</label><br>
+                <input type="text" id="sensorName" name="sensorName" value={{ sensor_name }} ><br>
+                <label for="sensorType">sensor type name:</label><br>
+                <input type="text" id="sensorType" name="sensorType" value={{ sensor_type }} readonly><br>
+                <button type="submit">Update sensor</button>
+                <button type="button" id="cancelStep1"><a href="{% url "manage_sensor" channel_id=channel_id %}">Cancel</a></button>
+
+            </form>
+        </div>
+    </div>
+    
+    <script>
+        // JavaScript code for handling form steps and API key generation
+    
+        // Step 1: Generate API Key
+        function generateApiKey() {
+            let apiKey = '';
+            const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            const apiKeyLength = 15;
+            for (let i = 0; i < apiKeyLength; i++) {
+                const randomIndex = Math.floor(Math.random() * characters.length);
+                apiKey += characters.charAt(randomIndex);
+            }
+            document.getElementById('ApiKey').value = apiKey;
+        }
+    
+        document.addEventListener('DOMContentLoaded', function () {
+            generateApiKey();
+        });
+    
+        // Regenerate API Key button
+        document.getElementById('regenerateApiKey').addEventListener('click', function () {
+            generateApiKey();
+        });
+    
+        document.getElementById('copyConfirmation').addEventListener('click', function () {
+            const confirmationData = document.getElementById('confirmationForm');
+            confirmationData.select();
+            document.execCommand('copy');
+        });
+    
+        
+    </script>
+</body>
+</html>
