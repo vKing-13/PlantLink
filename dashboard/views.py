@@ -10,7 +10,8 @@ import pytz
 
 def channels(request):
     db,collection=connect_to_mongodb('Channel','dashboard')
-    user_id="12345"
+
+    user_id = request.COOKIES['userid']
     if db is not None and collection is not None:
         channels=collection.find({"user_id":user_id})
         if channels:
@@ -342,6 +343,7 @@ def edit_channel(request, channel_id):
             return JsonResponse({"success": False, "error": "Error connecting to MongoDB"})
         
 def create_channel(request):
+    user_id= request.COOKIES['username']
     if request.method == 'POST':
         form = ChannelForm(request.POST)
         if form.is_valid():
@@ -356,7 +358,7 @@ def create_channel(request):
                     'location': form.cleaned_data['location'],
                     'privacy': form.cleaned_data['privacy'],
                     "sensor":[],
-                    'user_id':"12345",
+                    'user_id':user_id,
                     "date_created":current_date,
                     "date_modified":current_date,
                 }
