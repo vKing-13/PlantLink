@@ -46,3 +46,8 @@ html,body{
     font-weight: 600;
     border-radius: 8px;
 }
+#warning_password,#warning_email_1,#warning_email_2,#account_warning{
+    margin:0;
+    padding:0;
+    display: none;
+}
