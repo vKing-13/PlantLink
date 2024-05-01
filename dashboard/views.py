@@ -6,6 +6,9 @@ from dashboard.forms import ChannelForm, SensorForm
 from main.mongo_setup import connect_to_mongodb
 from datetime import datetime
 import pytz
+import pandas as pd
+import joblib
+import os
 # Create your views here.
 
 def channels(request):
@@ -113,7 +116,18 @@ def view_channel(request,channel_id):
         print("Error connecting to MongoDB.")
         # show error 
 
-
+def load_trained_model():
+    model_path = os.path.join('static', 'dashboard', 'best_random_forest_model.pkl')
+    if os.path.exists(model_path):
+        try:
+            model = joblib.load(model_path)
+            return model
+        except Exception as e:
+            print("Error loading the trained model:", str(e))
+            return None
+    else:
+        print("Model file not found.")
+        return None
 
 def view_channel_sensor(request, channel_id):
     _id = ObjectId(channel_id)
@@ -228,6 +242,41 @@ def view_channel_sensor(request, channel_id):
             else:
                 context["timestamps_humid_temp"] = []
 
+            print("before model")
+            # Load the trained Random Forest model
+            model = load_trained_model()
+
+            print(ph_values[-1])  # Assuming the latest pH value
+            print(humid_values[-1])  # Assuming the latest humidity value
+            print(temp_values[-1])
+
+            if model:
+                # Prepare input data for model prediction
+                # input_data = {
+                #     'N': 0,  # Provide dummy values for features not used in prediction
+                #     'P': 0,
+                #     'K': 0,
+                #     'temperature': 25.5,  # Example temperature value
+                #     'humidity': 65.0,  # Example humidity value
+                #     'ph': 6.0,  # Example pH value
+                #     'rainfall': 120.0,  # Example rainfall value
+                # }
+                input_data = {
+                    'N': 0,  # Provide dummy values for features not used in prediction
+                    'P': 0,
+                    'K': 0,
+                    'temperature': float(temp_values[-1]),  # Example temperature value
+                    'humidity': float(humid_values[-1]),  # Example humidity value
+                    'ph': float(ph_values[-1]),  # Example pH value
+                    'rainfall': 120.0,  # Example rainfall value
+                }
+                input_df = pd.DataFrame([input_data])
+
+                # Make predictions using the model
+                prediction = model.predict(input_df)
+
+                # Add the crop recommendation to the context
+                context["crop_recommendation"] = prediction[0]  # Assuming prediction is a single value
             return render(request, 'dashboard.html', context)
         else:
             return JsonResponse({"success": False, "error": "Document not found"})
