@@ -1,5 +1,5 @@
 from django.shortcuts import render
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, HttpResponseNotAllowed, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 import json
@@ -195,6 +195,94 @@ def post_ph_data(request):
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
+
+from django.http import JsonResponse, HttpResponseNotAllowed, HttpResponseBadRequest
+
+@csrf_exempt
+def combined_post(request):
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            sensor_type = data.get("sensor_type")
+
+            if sensor_type == "DHT11":
+                humidity_value = data.get('humidity')
+                temperature_value = data.get('temperature')
+                API_KEY = data.get('API_KEY')
+                print(f"Received humidity value: {humidity_value}")
+                print(f"Received temperature value: {temperature_value}")
+                print(f"Received API KEY: {API_KEY}")
+
+                if humidity_value is None or temperature_value is None or API_KEY is None:
+                    return JsonResponse({'error': 'Missing data or API_KEY'}, status=400)
+
+                db, collection = connect_to_mongodb('sensor', 'DHT11')
+                if db is not None and collection is not None:
+                    filter_criteria = {'API_KEY': API_KEY}
+                    existing_document = collection.find_one(filter_criteria)
+                    if existing_document:
+                        humidity_value_formatted = f'{humidity_value:.2f}'
+                        temperature_value_formatted = f'{temperature_value:.2f}'
+                        timestamp = datetime.now()
+                        doc = {
+                            'humidity_value': humidity_value_formatted,
+                            'temperature_value': temperature_value_formatted,
+                            'timestamp': timestamp
+                        }
+                        update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
+                        if update_result.modified_count > 0:
+                            print("Sensor data added successfully.")
+                            return JsonResponse({'message': 'humidity and temperature data received successfully'}, status=200)
+                        else:
+                            print("No document matching the filter criteria found.")
+                            return JsonResponse({'error': 'Failed to update sensor data'}, status=500)
+                    else:
+                        print("No document matching the filter criteria found. Request rejected.")
+                        return JsonResponse({'error': 'No document found with the provided API_KEY'}, status=404)
+                else:
+                    return JsonResponse({'error': 'Database connection error'}, status=500)
+
+            elif sensor_type == "ph_sensor":
+                ph_value = data.get('phValue')
+                API_KEY = data.get('API_KEY')
+
+                if ph_value is None or API_KEY is None:
+                    return JsonResponse({'error': 'Missing pH value or API_KEY'}, status=400)
+
+                print(f"Received pH value: {ph_value}")
+                print(f"Received API_KEY: {API_KEY}")
+
+                db, collection = connect_to_mongodb('sensor', 'PHSensor')
+                if db is not None and collection is not None:
+                    filter_criteria = {'API_KEY': API_KEY}
+                    existing_document = collection.find_one(filter_criteria)
+                    if existing_document:
+                        ph_value_formatted = f'{ph_value:.4f}'
+                        timestamp = datetime.now()
+                        doc = {
+                            'ph_value': ph_value_formatted,
+                            'timestamp': timestamp
+                        }
+                        update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
+                        if update_result.modified_count > 0:
+                            print("Sensor data added successfully.")
+                            return JsonResponse({'message': 'pH data received successfully'}, status=200)
+                        else:
+                            print("No document matching the filter criteria found.")
+                            return JsonResponse({'error': 'Failed to update sensor data'}, status=500)
+                    else:
+                        print("No document matching the filter criteria found. Request rejected.")
+                        return JsonResponse({'error': 'No document found with the provided API_KEY'}, status=404)
+                else:
+                    return JsonResponse({'error': 'Database connection error'}, status=500)
+
+        except json.JSONDecodeError as e:
+            return JsonResponse({'error': 'Invalid JSON format'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    else:
+        return HttpResponseNotAllowed(['POST'])
+
 
 
 from pymongo import MongoClient

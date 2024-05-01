@@ -113,81 +113,7 @@ def view_channel(request,channel_id):
         print("Error connecting to MongoDB.")
         # show error 
 
-def view_channel_sensor(request,channel_id):
-    _id=ObjectId(channel_id)
-    db,collection=connect_to_mongodb('Channel','dashboard')
-    if db is not None and collection is not None:
-        channel=collection.find_one({"_id":_id})
 
-        if channel:
-            print("found channel")
-            channel_name=channel.get('channel_name','')
-            description=channel.get('description','')
-            sensor=channel.get('sensor','')
-            for datapoint in sensor:
-                dht_id=datapoint.get("DHT_sensor","")
-                ph_id=datapoint.get("PH_sensor","")
-            db_ph,collection_ph=connect_to_mongodb('sensor','PHSensor')
-            if db_ph is not None and collection_ph is not None:
-                ph_data = collection_ph.find_one({"_id":ph_id})
-                
-                ph_values=[]
-                timestamps=[]
-                
-                for data_point in ph_data:
-                    ph_value = data_point.get('ph_value', '')
-                    timestamp_str = data_point.get('timestamp', '')
-
-                    # Convert timestamp string to datetime object
-                    timestamp_obj = datetime.fromisoformat(timestamp_str)
-                    # Convert timestamp to UTC and format it
-                    formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
-
-                    # Append pH value and formatted timestamp to lists
-                    ph_values.append(ph_value)
-                    timestamps.append(formatted_timestamp)
-            db_humid_temp,collection_humid_temp=connect_to_mongodb('sensor','DHT11')
-            if db_humid_temp is not None and collection_humid_temp is not None:
-                humid_temp_data = collection_humid_temp.find_one({"_id":dht_id})
-                # humid_temp_data = collection_humid_temp.find_one({"_id":dht_id})
-                
-                humid_values=[]
-                temp_values=[]
-                timestamps_humid_temp=[]
-                
-                for data_point in humid_temp_data.get('sensor_data', []):
-                    humidity_value = data_point.get('humidity_value', '')
-                    temperature_value = data_point.get('temperature_value', '')
-
-                    # Append humidity value and temperature value to lists
-                    humid_values.append(humidity_value)
-                    temp_values.append(temperature_value)
-
-                    timestamp_str = data_point.get('timestamp', '')
-                    # Convert timestamp string to datetime object
-                    timestamp_obj = datetime.fromisoformat(timestamp_str)
-                    # Convert timestamp to UTC and format it
-                    formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
-                    timestamps_humid_temp.append(formatted_timestamp)
-            context={
-                "channel_name":channel_name,
-                "description":description,
-                "ph_values": ph_values,
-                "timestamps": timestamps,
-                "humid_values": humid_values,
-                "temp_values":temp_values,
-                "timestamps_humid_temp":timestamps_humid_temp,
-                "channel_id":channel_id,
-            }
-            # Render a template or return JSON response with the document data
-            return render(request, 'dashboard.html',context)
-
-        else:
-            return JsonResponse({"success": False, "error": "Document not found"})
-            # show error not found
-    else:
-        print("Error connecting to MongoDB.")
-        # show error 
 
 def view_channel_sensor(request, channel_id):
     _id = ObjectId(channel_id)
@@ -203,59 +129,104 @@ def view_channel_sensor(request, channel_id):
 
             ph_values = []
             timestamps = []
+            humid_values=[]
+            temp_values=[]
+            timestamps_humid_temp=[]
             for datapoint in sensor:
                 if 'DHT_sensor' in datapoint:
                     dht = datapoint['DHT_sensor']
+                    db_humid_temp,collection_humid_temp=connect_to_mongodb('sensor','DHT11')
+                    dht_id=ObjectId(dht)
+                    humid_temp_data = collection_humid_temp.find_one({"_id":dht_id})
+                    
+                    for data_point in humid_temp_data.get('sensor_data', []):
+                        humidity_value = data_point.get('humidity_value', '')
+                        temperature_value = data_point.get('temperature_value', '')
 
+                        # Append humidity value and temperature value to lists
+                        humid_values.append(humidity_value)
+                        temp_values.append(temperature_value)
+
+                        timestamp_obj = data_point.get('timestamp', datetime.utcnow())
+                        formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
+                        timestamps_humid_temp.append(formatted_timestamp)
                 if 'PH_sensor' in datapoint:
                     ph = datapoint['PH_sensor']
+                    db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
+                    ph_id=ObjectId(ph)
+                    ph_data = collection_ph.find_one({"_id": ph_id})
+                    if ph_data:
+                        for data_point in ph_data.get('sensor_data', []):
+                            ph_values.append(data_point.get('ph_value',''))
+                            timestamp_obj = data_point.get('timestamp', datetime.utcnow())
+                            formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
+                            timestamps.append(formatted_timestamp)
+                    else:
+                        print("No PH sensor data found for the given ID")
 
-            db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
-            if db_ph is not None and collection_ph is not None:
+            # db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
+            # if db_ph is not None and collection_ph is not None:
 
-                ph_id=ObjectId(ph)
-                ph_data = collection_ph.find_one({"_id": ph_id})
-                if ph_data:
-                    for data_point in ph_data.get('sensor_data', []):
-                        ph_values.append(data_point.get('ph_value',''))
-                        timestamp_obj = data_point.get('timestamp', datetime.utcnow())
-                        formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
-                        timestamps.append(formatted_timestamp)
-                else:
-                    print("No PH sensor data found for the given ID")
+            #     ph_id=ObjectId(ph)
+            #     ph_data = collection_ph.find_one({"_id": ph_id})
+            #     if ph_data:
+            #         for data_point in ph_data.get('sensor_data', []):
+            #             ph_values.append(data_point.get('ph_value',''))
+            #             timestamp_obj = data_point.get('timestamp', datetime.utcnow())
+            #             formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
+            #             timestamps.append(formatted_timestamp)
+            #     else:
+            #         print("No PH sensor data found for the given ID")
 
             # Continue with other sensor data retrieval as per your requirements
-            db_humid_temp,collection_humid_temp=connect_to_mongodb('sensor','DHT11')
-            if db_humid_temp is not None and collection_humid_temp is not None:
-                dht_id=ObjectId(dht)
-                humid_temp_data = collection_humid_temp.find_one({"_id":dht_id})
-                # humid_temp_data = collection_humid_temp.find_one({"_id":dht_id})
+            # db_humid_temp,collection_humid_temp=connect_to_mongodb('sensor','DHT11')
+            # if db_humid_temp is not None and collection_humid_temp is not None:
+            #     dht_id=ObjectId(dht)
+            #     humid_temp_data = collection_humid_temp.find_one({"_id":dht_id})
+            #     # humid_temp_data = collection_humid_temp.find_one({"_id":dht_id})
                 
-                humid_values=[]
-                temp_values=[]
-                timestamps_humid_temp=[]
+            #     humid_values=[]
+            #     temp_values=[]
+            #     timestamps_humid_temp=[]
                 
-                for data_point in humid_temp_data.get('sensor_data', []):
-                    humidity_value = data_point.get('humidity_value', '')
-                    temperature_value = data_point.get('temperature_value', '')
+            #     for data_point in humid_temp_data.get('sensor_data', []):
+            #         humidity_value = data_point.get('humidity_value', '')
+            #         temperature_value = data_point.get('temperature_value', '')
 
-                    # Append humidity value and temperature value to lists
-                    humid_values.append(humidity_value)
-                    temp_values.append(temperature_value)
+            #         # Append humidity value and temperature value to lists
+            #         humid_values.append(humidity_value)
+            #         temp_values.append(temperature_value)
 
-                    timestamp_obj = data_point.get('timestamp', datetime.utcnow())
-                    formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
-                    timestamps_humid_temp.append(formatted_timestamp)
+            #         timestamp_obj = data_point.get('timestamp', datetime.utcnow())
+            #         formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
+            #         timestamps_humid_temp.append(formatted_timestamp)
             context = {
-                "channel_name":channel_name,
-                "description":description,
-                "ph_values": ph_values,
-                "timestamps": timestamps,
-                "humid_values": humid_values,
-                "temp_values":temp_values,
-                "timestamps_humid_temp":timestamps_humid_temp,
+                "channel_name": channel_name,
+                "description": description,
                 "channel_id":channel_id,
             }
+
+            if ph_values:
+                context["ph_values"] = ph_values
+                context["timestamps"] = timestamps
+            else:
+                context["ph_values"] = []
+                context["timestamps"] = []
+
+            if humid_values:
+                context["humid_values"] = humid_values
+            else:
+                context["humid_values"] = []
+
+            if temp_values:
+                context["temp_values"] = temp_values
+            else:
+                context["temp_values"] = []
+
+            if timestamps_humid_temp:
+                context["timestamps_humid_temp"] = timestamps_humid_temp
+            else:
+                context["timestamps_humid_temp"] = []
 
             return render(request, 'dashboard.html', context)
         else:
@@ -305,7 +276,7 @@ def edit_channel(request, channel_id):
             
             if result.modified_count > 0:
                 # Channel updated successfully
-                return redirect('view_channel', channel_id=channel_id)
+                return redirect('view_channel_sensor', channel_id=channel_id)
             else:
                 # Handle if update operation failed
                 return JsonResponse({"success": False, "error": "Failed to update channel"})
@@ -343,7 +314,7 @@ def edit_channel(request, channel_id):
             return JsonResponse({"success": False, "error": "Error connecting to MongoDB"})
         
 def create_channel(request):
-    user_id= request.COOKIES['username']
+    user_id= request.COOKIES['userid']
     if request.method == 'POST':
         form = ChannelForm(request.POST)
         if form.is_valid():
@@ -365,7 +336,7 @@ def create_channel(request):
                 # Insert the new channel data into MongoDB
                 result = collection.insert_one(new_channel)
                 
-                return redirect('view_channel', channel_id=result.inserted_id)
+                return redirect('view_channel_sensor', channel_id=result.inserted_id)
                 
             else:
                 # Handle MongoDB connection error

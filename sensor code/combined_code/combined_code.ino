@@ -7,7 +7,7 @@
 const char *ssid = "M403163@Rate One";
 const char *password = "wifipw_M403163";
 const char *base_rest_url = "http://192.168.100.6:8000/";
-const char *API_KEY = "W7XH3T9GJMNNKDG";
+const char *API_KEY = "TF8FANKKYQSKC1W";
 
 WiFiClient client;
 HTTPClient http;
@@ -79,7 +79,7 @@ void loop() {
       serializeJson(jsonDHT, jsonDataDHT);
 
       // Send DHT data to Django server via HTTP POST
-      String urlDHT = String(base_rest_url) + "sensor/dht_sensor/";
+      String urlDHT = String(base_rest_url) + "sensor/new_data/";
       http.begin(client, urlDHT);
       http.addHeader("Content-Type", "application/json");
       int httpResponseCodeDHT = http.POST(jsonDataDHT);
@@ -98,7 +98,9 @@ void loop() {
     }
 
     // Check if pH sensor is connected
-    int avgPhValue = 0;
+    int buf[10]; // Array to store pH sensor readings
+    int temp; // Temporary variable for sorting
+    int avgValue = 0; // Average value of pH sensor readings
     int validPhReadings = 0;
     for (int i = 0; i < 10; i++) {
       buf[i] = analogRead(SensorPin);
@@ -132,7 +134,7 @@ void loop() {
       serializeJson(jsonPH, jsonDataPH);
 
       // Send pH data to Django server via HTTP POST
-      String urlPH = String(base_rest_url) + "sensor/ph_sensor_data/";
+      String urlPH = String(base_rest_url) + "sensor/new_data/";
       http.begin(client, urlPH);
       http.addHeader("Content-Type", "application/json");
       int httpResponseCodePH = http.POST(jsonDataPH);

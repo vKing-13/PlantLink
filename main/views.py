@@ -19,25 +19,36 @@ def logPlantFeed(request):
         }
 
         try:
-            response = requests.post('https://a76b-2a09-bac5-4cee-232-00-38-7f.ngrok-free.app/plantlink/Login/', json=api_data)
-            response_data = response.json()
+            # response = requests.post('https://24bd-2a09-bac5-4cea-232-00-38-71.ngrok-free.app/plantlink/Login/', json=api_data)
+            # response_data = response.json()
         
-            user_details = response_data.get('user', {})
-            username = user_details.get('username', '')
-            email = user_details.get('email', '')
-            userLevel = user_details.get('userlevel', '')
-            userid = user_details.get('userid', '')
-            name = user_details.get('name', '')
-
-            # Set cookies with user details
-            response = HttpResponseRedirect('/mychannel/')  # Redirect to 'channels' URL after successful login
-            response.set_cookie('username', username)
-            response.set_cookie('email', email)
-            response.set_cookie('userlevel', userLevel)
-            response.set_cookie('userid', userid)
-            response.set_cookie('name', name)
-            return response
+            # user_details = response_data.get('user', {})
+            # username = user_details.get('username', '')
+            # email = user_details.get('email', '')
+            # userLevel = user_details.get('userlevel', '')
+            # userid = user_details.get('userid', '')
+            # name = user_details.get('name', '')
             
+            # if username:
+            #     # Set cookies with user details
+            #     response = HttpResponseRedirect('/mychannel/')  # Redirect to 'channels' URL after successful login
+            #     response.set_cookie('username', username)
+            #     response.set_cookie('email', email)
+            #     response.set_cookie('userlevel', userLevel)
+            #     response.set_cookie('userid', userid)
+            #     response.set_cookie('name', name)
+            #     return response
+            # else:
+            #     warning_message = True
+            #     return render(request, 'logPlantFeed.html', {'warning_message': warning_message})
+
+            response = HttpResponseRedirect('/mychannel/')  # Redirect to 'channels' URL after successful login
+            response.set_cookie('username', "hafiy")
+            response.set_cookie('email', "hafiy@gmail.com")
+            response.set_cookie('userlevel', "manager")
+            response.set_cookie('userid', "1")
+            response.set_cookie('name', "hafiyy")
+            return response
 
         except requests.exceptions.RequestException as e:
             warning_message = True

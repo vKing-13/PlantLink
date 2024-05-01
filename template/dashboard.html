@@ -34,17 +34,20 @@
               </svg></span>Add Sensor</a>
         </div>
     </div>
-    <div class="d-flex justify-content-between">
+    <div id="canvas" class="d-flex justify-content-between">
         <canvas id="phChart" width="400" height="400"></canvas>
         <canvas id="humidChart" width="400" height="400"></canvas>
         <canvas id="tempChart" width="400" height="400"></canvas>
     </div>
-
+    <div id="testing"></div>
+    <div id="empty_sensor">Add a new sensor to view a chart!</div>
 
       
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     
     <script>
+        const empty_sensor = document.getElementById('empty_sensor');
+        empty_sensor.style.display = 'none';
         const ph = document.getElementById('phChart');
         const humidity = document.getElementById('humidChart');
         const temperature = document.getElementById('tempChart');
@@ -53,69 +56,85 @@
         const humidData = {{ humid_values|safe }};
         const tempData = {{ temp_values|safe }};
         const timestamps_temp_humid = {{ timestamps_humid_temp|safe }};
-        new Chart(ph, {
-            type: 'line',
-            data: {
-                labels: timestamps,
-                datasets: [{
-                    label: 'PH Value:',
-                    data: phData,
-                    fill: false,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: false
-                    }
+
+        if(phData.length>0){
+            new Chart(ph, {
+                type: 'line',
+                data: {
+                    labels: timestamps,
+                    datasets: [{
+                        label: 'PH Value:',
+                        data: phData,
+                        fill: false,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
                 },
-                responsive: false
-            }
-        });
-        new Chart(humidity, {
-            type: 'line',
-            data: {
-                labels: timestamps_temp_humid,
-                datasets: [{
-                    label: 'Humidity Value:',
-                    data: humidData,
-                    fill: false,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: false
-                    }
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    },
+                    responsive: false
+                }
+            });
+        }else{
+            empty_sensor.style.display = 'block';
+            ph.style.display = 'none';
+        }
+        if(humidData.length>0){
+            new Chart(humidity, {
+                type: 'line',
+                data: {
+                    labels: timestamps_temp_humid,
+                    datasets: [{
+                        label: 'Humidity Value:',
+                        data: humidData,
+                        fill: false,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
                 },
-                responsive: false
-            }
-        });
-        new Chart(temperature, {
-            type: 'line',
-            data: {
-                labels: timestamps_temp_humid,
-                datasets: [{
-                    label: 'Temperature Value:',
-                    data: tempData,
-                    fill: false,
-                    borderColor: 'rgb(75, 192, 192)',
-                    tension: 0.1
-                }]
-            },
-            options: {
-                scales: {
-                    y: {
-                        beginAtZero: false
-                    }
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    },
+                    responsive: false
+                }
+            });
+        }else{
+            empty_sensor.style.display = 'block';
+            humidity.style.display = 'none';
+        }
+        if(tempData.length>0){
+            new Chart(temperature, {
+                type: 'line',
+                data: {
+                    labels: timestamps_temp_humid,
+                    datasets: [{
+                        label: 'Temperature Value:',
+                        data: tempData,
+                        fill: false,
+                        borderColor: 'rgb(75, 192, 192)',
+                        tension: 0.1
+                    }]
                 },
-                responsive: false
-            }
-        });
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        }
+                    },
+                    responsive: false
+                }
+            });
+        }else{
+            empty_sensor.style.display = 'block';
+            temperature.style.display = 'none';
+        }
     </script>
 
 </body>

@@ -3,7 +3,7 @@
 #include <ArduinoJson.h>
 const char* ssid = "M403163@Rate One";            // WiFi network SSID
 const char* password = "wifipw_M403163";       // WiFi network password
-const char* API_KEY = "MAJ03L9ZV4SZPCW";       // WiFi network password
+const char* API_KEY = "TF8FANKKYQSKC1W";       // WiFi network password
 // const char* server = "103.144.185.242";  // Public IP address of your Django server
 WiFiClient client;
 HTTPClient http;
