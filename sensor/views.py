@@ -197,7 +197,8 @@ def post_ph_data(request):
         return JsonResponse({'error': 'Only POST requests are allowed'}, status=405)
 
 from django.http import JsonResponse, HttpResponseNotAllowed, HttpResponseBadRequest
-
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 @csrf_exempt
 def combined_post(request):
     if request.method == 'POST':
@@ -232,6 +233,19 @@ def combined_post(request):
                         update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
                         if update_result.modified_count > 0:
                             print("Sensor data added successfully.")
+                            channel_layer = get_channel_layer()
+                            async_to_sync(channel_layer.group_send)(
+                                'sensor_data',
+                                {
+                                    'type': 'sensor_data_message',
+                                    'data': {
+                                        'sensor_type': 'DHT11',
+                                        'humidity_value': humidity_value_formatted,
+                                        'temperature_value': temperature_value_formatted,
+                                        'timestamp': timestamp.strftime('%d-%m-%Y')
+                                    }
+                                }
+                            )
                             return JsonResponse({'message': 'humidity and temperature data received successfully'}, status=200)
                         else:
                             print("No document matching the filter criteria found.")
@@ -265,6 +279,18 @@ def combined_post(request):
                         }
                         update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
                         if update_result.modified_count > 0:
+                            channel_layer = get_channel_layer()
+                            async_to_sync(channel_layer.group_send)(
+                                'sensor_data',
+                                {
+                                    'type': 'sensor_data_message',
+                                    'data': {
+                                        'sensor_type': 'ph_sensor',
+                                        'ph_value': ph_value_formatted,
+                                        'timestamp': timestamp.strftime('%d-%m-%Y %H:%M:%S')
+                                    }
+                                }
+                            )
                             print("Sensor data added successfully.")
                             return JsonResponse({'message': 'pH data received successfully'}, status=200)
                         else:

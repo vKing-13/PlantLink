@@ -36,10 +36,12 @@ INSTALLED_APPS = [
     'django.contrib.contenttypes',
     'django.contrib.sessions',
     'django.contrib.messages',
+    'daphne',
     'django.contrib.staticfiles',
     'compressor',
     'bootstrap5',
     'pymongo',
+    'channels',
 ]
 
 MIDDLEWARE = [
@@ -131,3 +133,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # To operate sensor on whether to stop or resume sensor monitoring
 RECEIVE_DATA_ENABLED = True
+
+ASGI_APPLICATION = 'PlantLink.asgi.application'
+
+CHANNEL_LAYERS = {
+    'default': {
+        'BACKEND': 'channels.layers.InMemoryChannelLayer',
+    },
+}

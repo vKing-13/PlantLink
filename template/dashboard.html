@@ -35,107 +35,195 @@
         </div>
     </div>
     <div id="canvas" class="d-flex justify-content-between">
-        <canvas id="phChart" width="400" height="400"></canvas>
-        <canvas id="humidChart" width="400" height="400"></canvas>
-        <canvas id="tempChart" width="400" height="400"></canvas>
+        <!-- Canvas elements and dropdowns will be added here dynamically -->
     </div>
     <div id="testing"></div>
     <div id="empty_sensor">Add a new sensor to view a chart!</div>
 
-      
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
     <script>
+        const socket = new WebSocket('ws://localhost:8000/ws/sensor_data/');
+        // const socket = new WebSocket('ws://192.168.x.x:8001/ws/sensor_data/'); // Use your local IP address if necessary
+
+        socket.onopen = function() {
+            console.log('WebSocket connection established');
+        };
+
+        socket.onclose = function(event) {
+            console.log('WebSocket connection closed', event);
+        };
+
+        socket.onerror = function(error) {
+            console.log('WebSocket error', error);
+        };
+
+        socket.onmessage = function(event) {
+            const data = JSON.parse(event.data);
+            console.log('WebSocket message received', data);
+            if (data.sensor_type === 'DHT11') {
+                updateHumidityChart(data);
+                updateTemperatureChart(data);
+            } else if (data.sensor_type === 'ph_sensor') {
+                updatePhChart(data);
+            }
+        };
+
+        function updateHumidityChart(data) {
+            if (!humidChart) return;
+            humidChart.data.labels.push(data.timestamp);
+            humidChart.data.datasets[0].data.push(data.humidity_value);
+            humidChart.update();
+            console.log('Updating humidity chart with data:', data);
+        }
+
+        function updateTemperatureChart(data) {
+            if (!tempChart) return;
+            tempChart.data.labels.push(data.timestamp);
+            tempChart.data.datasets[0].data.push(data.temperature_value);
+            tempChart.update();
+            console.log('Updating temperature chart with data:', data);
+        }
+
+        function updatePhChart(data) {
+            if (!phChart) return;
+            phChart.data.labels.push(data.timestamp);
+            phChart.data.datasets[0].data.push(data.ph_value);
+            phChart.update();
+            console.log('Updating pH chart with data:', data);
+        }
+
+        function createChart(canvasId, data, labels, label, type = 'line') {
+            const config = {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        fill: false,
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: type === 'bar' ? 'rgba(255, 99, 132, 0.2)' : 'rgb(75, 192, 192)',
+                        tension: type === 'spline' ? 0.4 : 0.1  // Set tension for spline
+                    }]
+                },
+                options: {
+                    elements: {
+                        line: {
+                            tension: type === 'spline' ? 0.4 : 0.1  // Set tension for spline
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 90,
+                                minRotation: 80
+                            }
+                        }
+                    },
+                    responsive: false,
+                    maintainAspectRatio: false
+                }
+            };
+            const canvas = document.getElementById(canvasId);
+            return new Chart(canvas, config);
+        }
+
+        function addDropdown(container, chart) {
+            const dropdown = document.createElement('select');
+            dropdown.className = 'chart-type-dropdown';
+            dropdown.innerHTML = `
+                <option value="line">Line</option>
+                <option value="bar">Bar</option>
+                <option value="spline">Spline</option>
+            `;
+            dropdown.addEventListener('change', function() {
+                const selectedType = dropdown.value;
+                chart.config.type = selectedType === 'spline' ? 'line' : selectedType;
+                chart.config.options.elements = chart.config.options.elements || {};
+                chart.config.options.elements.line = chart.config.options.elements.line || {};
+                if (selectedType === 'spline') {
+                    chart.config.options.elements.line.tension = 0.4;
+                } else {
+                    chart.config.options.elements.line.tension = 0.1;
+                }
+                chart.data.datasets[0].backgroundColor = selectedType === 'bar' ? 'rgba(75, 192, 192, 0.2)' : 'rgb(75, 192, 192)';
+                chart.update();
+            });
+            container.appendChild(dropdown);
+        }
+
+        const canvasContainer = document.getElementById('canvas');
         const empty_sensor = document.getElementById('empty_sensor');
         empty_sensor.style.display = 'none';
-        const ph = document.getElementById('phChart');
-        const humidity = document.getElementById('humidChart');
-        const temperature = document.getElementById('tempChart');
+
         const phData = {{ ph_values|safe }};
         const timestamps = {{ timestamps|safe }};
         const humidData = {{ humid_values|safe }};
         const tempData = {{ temp_values|safe }};
         const timestamps_temp_humid = {{ timestamps_humid_temp|safe }};
 
-        if(phData.length>0){
-            new Chart(ph, {
-                type: 'line',
-                data: {
-                    labels: timestamps,
-                    datasets: [{
-                        label: 'PH Value:',
-                        data: phData,
-                        fill: false,
-                        borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: false
-                        }
-                    },
-                    responsive: false
-                }
-            });
-        }else{
-            empty_sensor.style.display = 'block';
-            ph.style.display = 'none';
+        let phChart, humidChart, tempChart;
+        if (phData.length > 0) {
+            const phCanvasContainer = document.createElement('div');
+            const phCanvas = document.createElement('canvas');
+            phCanvas.id = 'phChart';
+            phCanvas.width = 400;
+            phCanvas.height = 400;
+            phCanvasContainer.appendChild(phCanvas);
+            canvasContainer.appendChild(phCanvasContainer);
+            phChart = createChart(phCanvas.id, phData, timestamps, 'PH Value');
+            addDropdown(phCanvasContainer, phChart);
         }
-        if(humidData.length>0){
-            new Chart(humidity, {
-                type: 'line',
-                data: {
-                    labels: timestamps_temp_humid,
-                    datasets: [{
-                        label: 'Humidity Value:',
-                        data: humidData,
-                        fill: false,
-                        borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: false
-                        }
-                    },
-                    responsive: false
-                }
-            });
-        }else{
-            empty_sensor.style.display = 'block';
-            humidity.style.display = 'none';
+
+        if (humidData.length > 0) {
+            const humidCanvasContainer = document.createElement('div');
+            const humidCanvas = document.createElement('canvas');
+            humidCanvas.id = 'humidChart';
+            humidCanvas.width = 400;
+            humidCanvas.height = 400;
+            humidCanvasContainer.appendChild(humidCanvas);
+            canvasContainer.appendChild(humidCanvasContainer);
+            humidChart = createChart(humidCanvas.id, humidData, timestamps_temp_humid, 'Humidity Value');
+            addDropdown(humidCanvasContainer, humidChart);
         }
-        if(tempData.length>0){
-            new Chart(temperature, {
-                type: 'line',
-                data: {
-                    labels: timestamps_temp_humid,
-                    datasets: [{
-                        label: 'Temperature Value:',
-                        data: tempData,
-                        fill: false,
-                        borderColor: 'rgb(75, 192, 192)',
-                        tension: 0.1
-                    }]
-                },
-                options: {
-                    scales: {
-                        y: {
-                            beginAtZero: false
-                        }
-                    },
-                    responsive: false
-                }
-            });
-        }else{
+
+        if (tempData.length > 0) {
+            const tempCanvasContainer = document.createElement('div');
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.id = 'tempChart';
+            tempCanvas.width = 400;
+            tempCanvas.height = 400;
+            tempCanvasContainer.appendChild(tempCanvas);
+            canvasContainer.appendChild(tempCanvasContainer);
+            tempChart = createChart(tempCanvas.id, tempData, timestamps_temp_humid, 'Temperature Value');
+            addDropdown(tempCanvasContainer, tempChart);
+        }
+
+        if (phData.length === 0 && humidData.length === 0 && tempData.length === 0) {
             empty_sensor.style.display = 'block';
-            temperature.style.display = 'none';
         }
     </script>
-    <p>crop recommendation: {{ crop_recommendation }}</p>
+    <div class="container mt-5 mx-0 px-0">
+        <h2 class="mb-4">Crop Recommendations</h2>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">Crop</th>
+                    <th scope="col">Prediction Accuracy (%)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for recommendation in crop_recommendations %}
+                <tr>
+                    <td>{{ recommendation.crop }}</td>
+                    <td>{{ recommendation.accuracy }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
 </body>
 </html>

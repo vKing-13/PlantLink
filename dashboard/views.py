@@ -9,6 +9,8 @@ import pytz
 import pandas as pd
 import joblib
 import os
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 # Create your views here.
 
 def channels(request):
@@ -143,15 +145,15 @@ def view_channel_sensor(request, channel_id):
 
             ph_values = []
             timestamps = []
-            humid_values=[]
-            temp_values=[]
-            timestamps_humid_temp=[]
+            humid_values = []
+            temp_values = []
+            timestamps_humid_temp = []
             for datapoint in sensor:
                 if 'DHT_sensor' in datapoint:
                     dht = datapoint['DHT_sensor']
-                    db_humid_temp,collection_humid_temp=connect_to_mongodb('sensor','DHT11')
-                    dht_id=ObjectId(dht)
-                    humid_temp_data = collection_humid_temp.find_one({"_id":dht_id})
+                    db_humid_temp, collection_humid_temp = connect_to_mongodb('sensor', 'DHT11')
+                    dht_id = ObjectId(dht)
+                    humid_temp_data = collection_humid_temp.find_one({"_id": dht_id})
                     
                     for data_point in humid_temp_data.get('sensor_data', []):
                         humidity_value = data_point.get('humidity_value', '')
@@ -167,100 +169,33 @@ def view_channel_sensor(request, channel_id):
                 if 'PH_sensor' in datapoint:
                     ph = datapoint['PH_sensor']
                     db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
-                    ph_id=ObjectId(ph)
+                    ph_id = ObjectId(ph)
                     ph_data = collection_ph.find_one({"_id": ph_id})
                     if ph_data:
                         for data_point in ph_data.get('sensor_data', []):
-                            ph_values.append(data_point.get('ph_value',''))
+                            ph_values.append(data_point.get('ph_value', ''))
                             timestamp_obj = data_point.get('timestamp', datetime.utcnow())
                             formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
                             timestamps.append(formatted_timestamp)
                     else:
                         print("No PH sensor data found for the given ID")
-
-            # db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
-            # if db_ph is not None and collection_ph is not None:
-
-            #     ph_id=ObjectId(ph)
-            #     ph_data = collection_ph.find_one({"_id": ph_id})
-            #     if ph_data:
-            #         for data_point in ph_data.get('sensor_data', []):
-            #             ph_values.append(data_point.get('ph_value',''))
-            #             timestamp_obj = data_point.get('timestamp', datetime.utcnow())
-            #             formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
-            #             timestamps.append(formatted_timestamp)
-            #     else:
-            #         print("No PH sensor data found for the given ID")
-
-            # Continue with other sensor data retrieval as per your requirements
-            # db_humid_temp,collection_humid_temp=connect_to_mongodb('sensor','DHT11')
-            # if db_humid_temp is not None and collection_humid_temp is not None:
-            #     dht_id=ObjectId(dht)
-            #     humid_temp_data = collection_humid_temp.find_one({"_id":dht_id})
-            #     # humid_temp_data = collection_humid_temp.find_one({"_id":dht_id})
-                
-            #     humid_values=[]
-            #     temp_values=[]
-            #     timestamps_humid_temp=[]
-                
-            #     for data_point in humid_temp_data.get('sensor_data', []):
-            #         humidity_value = data_point.get('humidity_value', '')
-            #         temperature_value = data_point.get('temperature_value', '')
-
-            #         # Append humidity value and temperature value to lists
-            #         humid_values.append(humidity_value)
-            #         temp_values.append(temperature_value)
-
-            #         timestamp_obj = data_point.get('timestamp', datetime.utcnow())
-            #         formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
-            #         timestamps_humid_temp.append(formatted_timestamp)
             context = {
                 "channel_name": channel_name,
                 "description": description,
-                "channel_id":channel_id,
+                "channel_id": channel_id,
+                "ph_values": ph_values,
+                "timestamps": timestamps,
+                "humid_values": humid_values,
+                "temp_values": temp_values,
+                "timestamps_humid_temp": timestamps_humid_temp
             }
-
-            if ph_values:
-                context["ph_values"] = ph_values
-                context["timestamps"] = timestamps
-            else:
-                context["ph_values"] = []
-                context["timestamps"] = []
-
-            if humid_values:
-                context["humid_values"] = humid_values
-            else:
-                context["humid_values"] = []
-
-            if temp_values:
-                context["temp_values"] = temp_values
-            else:
-                context["temp_values"] = []
-
-            if timestamps_humid_temp:
-                context["timestamps_humid_temp"] = timestamps_humid_temp
-            else:
-                context["timestamps_humid_temp"] = []
 
             print("before model")
             # Load the trained Random Forest model
             model = load_trained_model()
 
-            print(ph_values[-1])  # Assuming the latest pH value
-            print(humid_values[-1])  # Assuming the latest humidity value
-            print(temp_values[-1])
-
             if model:
                 # Prepare input data for model prediction
-                # input_data = {
-                #     'N': 0,  # Provide dummy values for features not used in prediction
-                #     'P': 0,
-                #     'K': 0,
-                #     'temperature': 25.5,  # Example temperature value
-                #     'humidity': 65.0,  # Example humidity value
-                #     'ph': 6.0,  # Example pH value
-                #     'rainfall': 120.0,  # Example rainfall value
-                # }
                 input_data = {
                     'N': 0,  # Provide dummy values for features not used in prediction
                     'P': 0,
@@ -274,9 +209,29 @@ def view_channel_sensor(request, channel_id):
 
                 # Make predictions using the model
                 prediction = model.predict(input_df)
+                
+                probabilities = model.predict_proba(input_df)
+                
+                labels = model.classes_
 
+                # Combine the labels with their probabilities and sort them by probability in descending order
+                crop_recommendations = [
+                    {"crop": label, "accuracy": prob * 100}  # Convert to percentage
+                    for label, prob in zip(labels, probabilities[0])
+                ]
+                crop_recommendations.sort(key=lambda x: x["accuracy"], reverse=True)
                 # Add the crop recommendation to the context
-                context["crop_recommendation"] = prediction[0]  # Assuming prediction is a single value
+                context["crop_recommendations"] = crop_recommendations
+
+                # Send the updated context data to WebSocket
+                channel_layer = get_channel_layer()
+                async_to_sync(channel_layer.group_send)(
+                    'sensor_data',
+                    {
+                        'type': 'sensor_data_message',
+                        'data': context  # You can customize the data you send
+                    }
+                )
             return render(request, 'dashboard.html', context)
         else:
             return JsonResponse({"success": False, "error": "Document not found"})

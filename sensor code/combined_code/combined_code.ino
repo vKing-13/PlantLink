@@ -97,6 +97,9 @@ void loop() {
       Serial.println("Invalid DHT readings (NaN). Skipping DHT data transmission.");
     }
 
+    // Add a delay to ensure no back-to-back requests
+    delay(10000);  // Adjust this delay as needed
+
     // Check if pH sensor is connected
     int buf[10]; // Array to store pH sensor readings
     int temp; // Temporary variable for sorting
@@ -152,8 +155,8 @@ void loop() {
       Serial.println("Invalid pH readings (NaN). Skipping pH data transmission.");
     }
 
-    // Add a delay before next iteration
-    delay(5000);  // Adjust this delay as needed
+    // Add a delay before the next iteration to prevent rapid consecutive requests
+    delay(30000);  // Adjust this delay as needed
   } else {
     Serial.println("WiFi not connected. Reconnecting...");
     // Reconnect to WiFi network
