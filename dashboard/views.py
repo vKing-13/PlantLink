@@ -132,111 +132,117 @@ def load_trained_model():
         return None
 
 def view_channel_sensor(request, channel_id):
-    _id = ObjectId(channel_id)
-    db, collection = connect_to_mongodb('Channel', 'dashboard')
-    if db is not None and collection is not None:
-        channel = collection.find_one({"_id": _id})
+    if 'username' in request.COOKIES:
+        _id = ObjectId(channel_id)
+        db, collection = connect_to_mongodb('Channel', 'dashboard')
+        if db is not None and collection is not None:
+            channel = collection.find_one({"_id": _id})
 
-        if channel:
-            print("Found channel")
-            channel_name = channel.get('channel_name', '')
-            description = channel.get('description', '')
-            sensor = channel.get('sensor', '')
+            if channel:
+                print("Found channel")
+                channel_name = channel.get('channel_name', '')
+                description = channel.get('description', '')
+                sensor = channel.get('sensor', '')
 
-            ph_values = []
-            timestamps = []
-            humid_values = []
-            temp_values = []
-            timestamps_humid_temp = []
-            for datapoint in sensor:
-                if 'DHT_sensor' in datapoint:
-                    dht = datapoint['DHT_sensor']
-                    db_humid_temp, collection_humid_temp = connect_to_mongodb('sensor', 'DHT11')
-                    dht_id = ObjectId(dht)
-                    humid_temp_data = collection_humid_temp.find_one({"_id": dht_id})
-                    
-                    for data_point in humid_temp_data.get('sensor_data', []):
-                        humidity_value = data_point.get('humidity_value', '')
-                        temperature_value = data_point.get('temperature_value', '')
+                ph_values = []
+                timestamps = []
+                humid_values = []
+                temp_values = []
+                timestamps_humid_temp = []
+                for datapoint in sensor:
+                    if 'DHT_sensor' in datapoint:
+                        dht = datapoint['DHT_sensor']
+                        db_humid_temp, collection_humid_temp = connect_to_mongodb('sensor', 'DHT11')
+                        dht_id = ObjectId(dht)
+                        humid_temp_data = collection_humid_temp.find_one({"_id": dht_id})
+                        
+                        for data_point in humid_temp_data.get('sensor_data', []):
+                            humidity_value = data_point.get('humidity_value', '')
+                            temperature_value = data_point.get('temperature_value', '')
 
-                        # Append humidity value and temperature value to lists
-                        humid_values.append(humidity_value)
-                        temp_values.append(temperature_value)
+                            # Append humidity value and temperature value to lists
+                            humid_values.append(humidity_value)
+                            temp_values.append(temperature_value)
 
-                        timestamp_obj = data_point.get('timestamp', datetime.utcnow())
-                        formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
-                        timestamps_humid_temp.append(formatted_timestamp)
-                if 'PH_sensor' in datapoint:
-                    ph = datapoint['PH_sensor']
-                    db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
-                    ph_id = ObjectId(ph)
-                    ph_data = collection_ph.find_one({"_id": ph_id})
-                    if ph_data:
-                        for data_point in ph_data.get('sensor_data', []):
-                            ph_values.append(data_point.get('ph_value', ''))
                             timestamp_obj = data_point.get('timestamp', datetime.utcnow())
                             formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
-                            timestamps.append(formatted_timestamp)
-                    else:
-                        print("No PH sensor data found for the given ID")
-            context = {
-                "channel_name": channel_name,
-                "description": description,
-                "channel_id": channel_id,
-                "ph_values": ph_values,
-                "timestamps": timestamps,
-                "humid_values": humid_values,
-                "temp_values": temp_values,
-                "timestamps_humid_temp": timestamps_humid_temp
-            }
-
-            print("before model")
-            # Load the trained Random Forest model
-            model = load_trained_model()
-
-            if model:
-                # Prepare input data for model prediction
-                input_data = {
-                    'N': 0,  # Provide dummy values for features not used in prediction
-                    'P': 0,
-                    'K': 0,
-                    'temperature': float(temp_values[-1]),  # Example temperature value
-                    'humidity': float(humid_values[-1]),  # Example humidity value
-                    'ph': float(ph_values[-1]),  # Example pH value
-                    'rainfall': 120.0,  # Example rainfall value
+                            timestamps_humid_temp.append(formatted_timestamp)
+                    if 'PH_sensor' in datapoint:
+                        ph = datapoint['PH_sensor']
+                        db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
+                        ph_id = ObjectId(ph)
+                        ph_data = collection_ph.find_one({"_id": ph_id})
+                        if ph_data:
+                            for data_point in ph_data.get('sensor_data', []):
+                                ph_values.append(data_point.get('ph_value', ''))
+                                timestamp_obj = data_point.get('timestamp', datetime.utcnow())
+                                formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
+                                timestamps.append(formatted_timestamp)
+                        else:
+                            print("No PH sensor data found for the given ID")
+                context = {
+                    "channel_name": channel_name,
+                    "description": description,
+                    "channel_id": channel_id,
+                    "ph_values": ph_values,
+                    "timestamps": timestamps,
+                    "humid_values": humid_values,
+                    "temp_values": temp_values,
+                    "timestamps_humid_temp": timestamps_humid_temp
                 }
-                input_df = pd.DataFrame([input_data])
 
-                # Make predictions using the model
-                prediction = model.predict(input_df)
-                
-                probabilities = model.predict_proba(input_df)
-                
-                labels = model.classes_
+                print("before model")
+                # Load the trained Random Forest model
+                model = load_trained_model()
 
-                # Combine the labels with their probabilities and sort them by probability in descending order
-                crop_recommendations = [
-                    {"crop": label, "accuracy": prob * 100}  # Convert to percentage
-                    for label, prob in zip(labels, probabilities[0])
-                ]
-                crop_recommendations.sort(key=lambda x: x["accuracy"], reverse=True)
-                # Add the crop recommendation to the context
-                context["crop_recommendations"] = crop_recommendations
-
-                # Send the updated context data to WebSocket
-                channel_layer = get_channel_layer()
-                async_to_sync(channel_layer.group_send)(
-                    'sensor_data',
-                    {
-                        'type': 'sensor_data_message',
-                        'data': context  # You can customize the data you send
+                if model:
+                    # Prepare input data for model prediction
+                    input_data = {
+                        'N': 0,  # Provide dummy values for features not used in prediction
+                        'P': 0,
+                        'K': 0,
+                        'temperature': float(temp_values[-1]) if temp_values else 0.0,  # Example temperature value
+                        'humidity': float(humid_values[-1]) if humid_values else 0.0,  # Example humidity value
+                        'ph': float(ph_values[-1]) if ph_values else 0.0,  # Example pH value
+                        'rainfall': 120.0,  # Example rainfall value
                     }
-                )
-            return render(request, 'dashboard.html', context)
+
+                    input_df = pd.DataFrame([input_data])
+
+                    # Make predictions using the model
+                    prediction = model.predict(input_df)
+                    
+                    probabilities = model.predict_proba(input_df)
+                    
+                    labels = model.classes_
+
+                    # Combine the labels with their probabilities and sort them by probability in descending order
+                    crop_recommendations = [
+                        {"crop": label, "accuracy": prob * 100}  # Convert to percentage
+                        for label, prob in zip(labels, probabilities[0])
+                    ]
+                    crop_recommendations.sort(key=lambda x: x["accuracy"], reverse=True)
+                    # Add the crop recommendation to the context
+                    context["crop_recommendations"] = crop_recommendations
+
+                    # Send the updated context data to WebSocket
+                    channel_layer = get_channel_layer()
+                    async_to_sync(channel_layer.group_send)(
+                        'sensor_data',
+                        {
+                            'type': 'sensor_data_message',
+                            'data': context  # You can customize the data you send
+                        }
+                    )
+                return render(request, 'dashboard.html', context)
+            else:
+                return JsonResponse({"success": False, "error": "Document not found"})
         else:
-            return JsonResponse({"success": False, "error": "Document not found"})
+            print("Error connecting to MongoDB.")
+        
     else:
-        print("Error connecting to MongoDB.")
+        return redirect('logPlantFeed')
+
 
 def delete_channel(request,channel_id):
     _id=ObjectId(channel_id)
@@ -252,70 +258,73 @@ def delete_channel(request,channel_id):
         print("Error connecting to MongoDB.")
 
 def edit_channel(request, channel_id):
-    if request.method == 'POST':
-        # Fetch form data
-        channel_name = request.POST.get('channel_name')
-        description = request.POST.get('description')
-        location = request.POST.get('location')
-        privacy = request.POST.get('privacy')
-        
-        # Connect to MongoDB
-        db, collection = connect_to_mongodb('Channel', 'dashboard')
-        
-        if db is not None and collection is not None:
-            # Convert channel_id to ObjectId
-            _id = ObjectId(channel_id)
-            current_date = datetime.now().strftime('%d/%m/%Y')
-            # Update channel document in MongoDB
-            result = collection.update_one(
-                {"_id": _id},
-                {"$set": {
-                    "channel_name": channel_name,
-                    "description": description,
-                    "location": location,
-                    "privacy": privacy,
-                    "date_modified":current_date
-                }}
-            )
+    if 'username' in request.COOKIES:
+        if request.method == 'POST':
+            # Fetch form data
+            channel_name = request.POST.get('channel_name')
+            description = request.POST.get('description')
+            location = request.POST.get('location')
+            privacy = request.POST.get('privacy')
             
-            if result.modified_count > 0:
-                # Channel updated successfully
-                return redirect('view_channel_sensor', channel_id=channel_id)
+            # Connect to MongoDB
+            db, collection = connect_to_mongodb('Channel', 'dashboard')
+            
+            if db is not None and collection is not None:
+                # Convert channel_id to ObjectId
+                _id = ObjectId(channel_id)
+                current_date = datetime.now().strftime('%d/%m/%Y')
+                # Update channel document in MongoDB
+                result = collection.update_one(
+                    {"_id": _id},
+                    {"$set": {
+                        "channel_name": channel_name,
+                        "description": description,
+                        "location": location,
+                        "privacy": privacy,
+                        "date_modified":current_date
+                    }}
+                )
+                
+                if result.modified_count > 0:
+                    # Channel updated successfully
+                    return redirect('view_channel_sensor', channel_id=channel_id)
+                else:
+                    # Handle if update operation failed
+                    return JsonResponse({"success": False, "error": "Failed to update channel"})
             else:
-                # Handle if update operation failed
-                return JsonResponse({"success": False, "error": "Failed to update channel"})
+                # Handle MongoDB connection error
+                return JsonResponse({"success": False, "error": "Error connecting to MongoDB"})
         else:
-            # Handle MongoDB connection error
-            return JsonResponse({"success": False, "error": "Error connecting to MongoDB"})
+            # Fetch channel details from MongoDB to pre-fill the form
+            db, collection = connect_to_mongodb('Channel', 'dashboard')
+            
+            if db is not None and collection is not None:
+                _id = ObjectId(channel_id)
+                channel = collection.find_one({"_id": _id})
+                
+                if channel:
+                    channel_name=channel.get('channel_name','')
+                    description=channel.get('description','')
+                    location=channel.get('location','')
+                    privacy=channel.get('privacy','')
+                    context={
+                        "channel_name": channel_name,
+                        "description": description,
+                        "location": location,
+                        "privacy": privacy
+                    }
+
+
+                    # Render the edit form with channel data
+                    return render(request, 'edit_channel.html', context)
+                else:
+                    # Handle if channel not found in MongoDB
+                    return JsonResponse({"success": False, "error": "Channel not found"})
+            else:
+                # Handle MongoDB connection error
+                return JsonResponse({"success": False, "error": "Error connecting to MongoDB"})
     else:
-        # Fetch channel details from MongoDB to pre-fill the form
-        db, collection = connect_to_mongodb('Channel', 'dashboard')
-        
-        if db is not None and collection is not None:
-            _id = ObjectId(channel_id)
-            channel = collection.find_one({"_id": _id})
-            
-            if channel:
-                channel_name=channel.get('channel_name','')
-                description=channel.get('description','')
-                location=channel.get('location','')
-                privacy=channel.get('privacy','')
-                context={
-                    "channel_name": channel_name,
-                    "description": description,
-                    "location": location,
-                    "privacy": privacy
-                }
-
-
-                # Render the edit form with channel data
-                return render(request, 'edit_channel.html', context)
-            else:
-                # Handle if channel not found in MongoDB
-                return JsonResponse({"success": False, "error": "Channel not found"})
-        else:
-            # Handle MongoDB connection error
-            return JsonResponse({"success": False, "error": "Error connecting to MongoDB"})
+        return redirect('logPlantFeed') 
         
 def create_channel(request):
     user_id= request.COOKIES['userid']
