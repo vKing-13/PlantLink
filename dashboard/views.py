@@ -119,7 +119,7 @@ def view_channel(request,channel_id):
         # show error 
 
 def load_trained_model():
-    model_path = os.path.join('static', 'dashboard', 'best_random_forest_model.pkl')
+    model_path = '/home/shiroooo/PlantLink/static/dashboard/best_random_forest_model.pkl'
     if os.path.exists(model_path):
         try:
             model = joblib.load(model_path)
