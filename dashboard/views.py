@@ -14,104 +14,40 @@ from channels.layers import get_channel_layer
 # Create your views here.
 
 def channels(request):
-    db,collection=connect_to_mongodb('Channel','dashboard')
-
-    user_id = request.COOKIES['userid']
-    if db is not None and collection is not None:
-        channels=collection.find({"user_id":user_id})
-        if channels:
-            channel_list=[]
-            public_channel=0
-            total_sensor=0
-            for channel in channels:
-                sensor_count = len(channel.get('sensor', []))
-                channel_data={
-                    'channel_id': str(channel.get('_id')),
-                    'channel_name':channel.get('channel_name',' '),
-                    'description':channel.get('description',' '),
-                    'date_created':channel.get('date_created',' '),
-                    'date_modified':channel.get('date_modified',' '),
-                    'sensor_count':sensor_count
-                }
-                total_sensor+=sensor_count
-                channel_status=channel.get('privacy',' ')
-                if(channel_status=="public"):
-                    public_channel+=1
-                channel_list.append(channel_data)
-            #pass the channels match with user_id and pass as context
-            channel_count = len(channel_list)
-            context = {
-                'channels': channel_list,
-                'channel_count':channel_count,
-                "public_channel":public_channel,
-                "total_sensor":total_sensor,
-            }
-            return render(request, 'channels.html', context)
-        else:
-            return JsonResponse({"success": False, "error": "Document not found"})
-            # show error not found
-    else:
-        print("Error connecting to MongoDB.")
-        # show error 
-
-def dashboard(request): 
-    name="Soil 001"
-    description="First soil research"
-    return render(request, 'dashboard.html',{'name':name,'description':description})
-
-def view_channel(request,channel_id):
     if 'username' in request.COOKIES:
-        _id=ObjectId(channel_id)
         db,collection=connect_to_mongodb('Channel','dashboard')
+
+        user_id = request.COOKIES['userid']
         if db is not None and collection is not None:
-            channel=collection.find_one({"_id":_id})
-
-            if channel:
-                print("found channel")
-                channel_name=channel.get('channel_name','')
-                description=channel.get('description','')
-
-                db_ph,collection_ph=connect_to_mongodb('sensor','PH_data')
-                if db_ph is not None and collection_ph is not None:
-                    ph_data = collection_ph.find({})
-                    
-                    ph_values=[]
-                    timestamps=[]
-                    
-                    for data_point in ph_data:
-                        ph_values.append(data_point.get('ph_value',''))
-
-                        timestamp_obj = data_point.get('timestamp', datetime.utcnow())
-                        formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
-                        timestamps.append(formatted_timestamp)
-                db_humid_temp,collection_humid_temp=connect_to_mongodb('sensor','humid_temperature_data')
-                if db_humid_temp is not None and collection_humid_temp is not None:
-                    humid_temp_data = collection_humid_temp.find({})
-                    
-                    humid_values=[]
-                    temp_values=[]
-                    timestamps_humid_temp=[]
-                    
-                    for data_point in humid_temp_data:
-                        humid_values.append(data_point.get('humidity_value',''))
-                        temp_values.append(data_point.get('temperature_value',''))
-
-                        timestamp_obj = data_point.get('timestamp', datetime.utcnow())
-                        formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
-                        timestamps_humid_temp.append(formatted_timestamp)
-                context={
-                    "channel_name":channel_name,
-                    "description":description,
-                    "ph_values": ph_values,
-                    "timestamps": timestamps,
-                    "humid_values": humid_values,
-                    "temp_values":temp_values,
-                    "timestamps_humid_temp":timestamps_humid_temp,
-                    "channel_id":channel_id,
+            channels=collection.find({"user_id":user_id})
+            if channels:
+                channel_list=[]
+                public_channel=0
+                total_sensor=0
+                for channel in channels:
+                    sensor_count = len(channel.get('sensor', []))
+                    channel_data={
+                        'channel_id': str(channel.get('_id')),
+                        'channel_name':channel.get('channel_name',' '),
+                        'description':channel.get('description',' '),
+                        'date_created':channel.get('date_created',' '),
+                        'date_modified':channel.get('date_modified',' '),
+                        'sensor_count':sensor_count
+                    }
+                    total_sensor+=sensor_count
+                    channel_status=channel.get('privacy',' ')
+                    if(channel_status=="public"):
+                        public_channel+=1
+                    channel_list.append(channel_data)
+                #pass the channels match with user_id and pass as context
+                channel_count = len(channel_list)
+                context = {
+                    'channels': channel_list,
+                    'channel_count':channel_count,
+                    "public_channel":public_channel,
+                    "total_sensor":total_sensor,
                 }
-                # Render a template or return JSON response with the document data
-                return render(request, 'dashboard.html',context)
-
+                return render(request, 'channels.html', context)
             else:
                 return JsonResponse({"success": False, "error": "Document not found"})
                 # show error not found
@@ -119,7 +55,71 @@ def view_channel(request,channel_id):
             print("Error connecting to MongoDB.")
             # show error 
     else:
-        return redirect('logPlantFeed')    
+        return redirect('logPlantFeed')   
+
+def dashboard(request): 
+    name="Soil 001"
+    description="First soil research"
+    return render(request, 'dashboard.html',{'name':name,'description':description})
+
+def view_channel(request,channel_id): 
+    _id=ObjectId(channel_id)
+    db,collection=connect_to_mongodb('Channel','dashboard')
+    if db is not None and collection is not None:
+        channel=collection.find_one({"_id":_id})
+
+        if channel:
+            print("found channel")
+            channel_name=channel.get('channel_name','')
+            description=channel.get('description','')
+
+            db_ph,collection_ph=connect_to_mongodb('sensor','PH_data')
+            if db_ph is not None and collection_ph is not None:
+                ph_data = collection_ph.find({})
+                
+                ph_values=[]
+                timestamps=[]
+                
+                for data_point in ph_data:
+                    ph_values.append(data_point.get('ph_value',''))
+
+                    timestamp_obj = data_point.get('timestamp', datetime.utcnow())
+                    formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
+                    timestamps.append(formatted_timestamp)
+            db_humid_temp,collection_humid_temp=connect_to_mongodb('sensor','humid_temperature_data')
+            if db_humid_temp is not None and collection_humid_temp is not None:
+                humid_temp_data = collection_humid_temp.find({})
+                
+                humid_values=[]
+                temp_values=[]
+                timestamps_humid_temp=[]
+                
+                for data_point in humid_temp_data:
+                    humid_values.append(data_point.get('humidity_value',''))
+                    temp_values.append(data_point.get('temperature_value',''))
+
+                    timestamp_obj = data_point.get('timestamp', datetime.utcnow())
+                    formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
+                    timestamps_humid_temp.append(formatted_timestamp)
+            context={
+                "channel_name":channel_name,
+                "description":description,
+                "ph_values": ph_values,
+                "timestamps": timestamps,
+                "humid_values": humid_values,
+                "temp_values":temp_values,
+                "timestamps_humid_temp":timestamps_humid_temp,
+                "channel_id":channel_id,
+            }
+            # Render a template or return JSON response with the document data
+            return render(request, 'dashboard.html',context)
+
+        else:
+            return JsonResponse({"success": False, "error": "Document not found"})
+            # show error not found
+    else:
+        print("Error connecting to MongoDB.")
+        # show error 
 
 def load_trained_model():
     model_path = os.path.join('static', 'dashboard', 'best_random_forest_model.pkl')
