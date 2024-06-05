@@ -199,6 +199,8 @@ def post_ph_data(request):
 from django.http import JsonResponse, HttpResponseNotAllowed, HttpResponseBadRequest
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+import asyncio
+import websockets
 @csrf_exempt
 def combined_post(request):
     if request.method == 'POST':
@@ -233,19 +235,19 @@ def combined_post(request):
                         update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
                         if update_result.modified_count > 0:
                             print("Sensor data added successfully.")
-                            channel_layer = get_channel_layer()
-                            async_to_sync(channel_layer.group_send)(
-                                'sensor_data',
-                                {
-                                    'type': 'sensor_data_message',
-                                    'data': {
-                                        'sensor_type': 'DHT11',
-                                        'humidity_value': humidity_value_formatted,
-                                        'temperature_value': temperature_value_formatted,
-                                        'timestamp': timestamp.strftime('%d-%m-%Y')
-                                    }
+                            aws_websocket_url = "wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/"
+                            message = {
+                                'action': 'sendMessage',
+                                'to': API_KEY,
+                                'message': {
+                                    'sensor_type': 'DHT11',
+                                    'humidity_value': humidity_value_formatted,
+                                    'temperature_value': temperature_value_formatted,
+                                    'timestamp': timestamp.strftime('%d-%m-%Y')
                                 }
-                            )
+                            }
+                            asyncio.run(send_websocket_message(aws_websocket_url, message))
+
                             return JsonResponse({'message': 'humidity and temperature data received successfully'}, status=200)
                         else:
                             print("No document matching the filter criteria found.")
@@ -264,7 +266,7 @@ def combined_post(request):
                     return JsonResponse({'error': 'Missing pH value or API_KEY'}, status=400)
 
                 print(f"Received pH value: {ph_value}")
-                print(f"Received API_KEY: {API_KEY}")
+                print(f"Received API KEY: {API_KEY}")
 
                 db, collection = connect_to_mongodb('sensor', 'PHSensor')
                 if db is not None and collection is not None:
@@ -279,18 +281,17 @@ def combined_post(request):
                         }
                         update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
                         if update_result.modified_count > 0:
-                            channel_layer = get_channel_layer()
-                            async_to_sync(channel_layer.group_send)(
-                                'sensor_data',
-                                {
-                                    'type': 'sensor_data_message',
-                                    'data': {
-                                        'sensor_type': 'ph_sensor',
-                                        'ph_value': ph_value_formatted,
-                                        'timestamp': timestamp.strftime('%d-%m-%Y %H:%M:%S')
-                                    }
+                            aws_websocket_url = "wss://we4sgi2dw0.execute-api.ap-southeast-2.amazonaws.com/deployment/"
+                            message = {
+                                'action': 'sendMessage',
+                                'to': API_KEY,
+                                'message': {
+                                    'sensor_type': 'ph_sensor',
+                                    'ph_value': ph_value_formatted,
+                                    'timestamp': timestamp.strftime('%d-%m-%Y %H:%M:%S')
                                 }
-                            )
+                            }
+                            asyncio.run(send_websocket_message(aws_websocket_url, message))
                             print("Sensor data added successfully.")
                             return JsonResponse({'message': 'pH data received successfully'}, status=200)
                         else:
@@ -309,6 +310,9 @@ def combined_post(request):
     else:
         return HttpResponseNotAllowed(['POST'])
 
+async def send_websocket_message(url, message):
+    async with websockets.connect(url) as websocket:
+        await websocket.send(json.dumps(message))
 
 
 from pymongo import MongoClient
