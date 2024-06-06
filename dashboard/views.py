@@ -14,52 +14,55 @@ from channels.layers import get_channel_layer
 # Create your views here.
 
 def channels(request):
-    db,collection=connect_to_mongodb('Channel','dashboard')
+    if 'username' in request.COOKIES:
+        db,collection=connect_to_mongodb('Channel','dashboard')
 
-    user_id = request.COOKIES['userid']
-    if db is not None and collection is not None:
-        channels=collection.find({"user_id":user_id})
-        if channels:
-            channel_list=[]
-            public_channel=0
-            total_sensor=0
-            for channel in channels:
-                sensor_count = len(channel.get('sensor', []))
-                channel_data={
-                    'channel_id': str(channel.get('_id')),
-                    'channel_name':channel.get('channel_name',' '),
-                    'description':channel.get('description',' '),
-                    'date_created':channel.get('date_created',' '),
-                    'date_modified':channel.get('date_modified',' '),
-                    'sensor_count':sensor_count
+        user_id = request.COOKIES['userid']
+        if db is not None and collection is not None:
+            channels=collection.find({"user_id":user_id})
+            if channels:
+                channel_list=[]
+                public_channel=0
+                total_sensor=0
+                for channel in channels:
+                    sensor_count = len(channel.get('sensor', []))
+                    channel_data={
+                        'channel_id': str(channel.get('_id')),
+                        'channel_name':channel.get('channel_name',' '),
+                        'description':channel.get('description',' '),
+                        'date_created':channel.get('date_created',' '),
+                        'date_modified':channel.get('date_modified',' '),
+                        'sensor_count':sensor_count
+                    }
+                    total_sensor+=sensor_count
+                    channel_status=channel.get('privacy',' ')
+                    if(channel_status=="public"):
+                        public_channel+=1
+                    channel_list.append(channel_data)
+                #pass the channels match with user_id and pass as context
+                channel_count = len(channel_list)
+                context = {
+                    'channels': channel_list,
+                    'channel_count':channel_count,
+                    "public_channel":public_channel,
+                    "total_sensor":total_sensor,
                 }
-                total_sensor+=sensor_count
-                channel_status=channel.get('privacy',' ')
-                if(channel_status=="public"):
-                    public_channel+=1
-                channel_list.append(channel_data)
-            #pass the channels match with user_id and pass as context
-            channel_count = len(channel_list)
-            context = {
-                'channels': channel_list,
-                'channel_count':channel_count,
-                "public_channel":public_channel,
-                "total_sensor":total_sensor,
-            }
-            return render(request, 'channels.html', context)
+                return render(request, 'channels.html', context)
+            else:
+                return JsonResponse({"success": False, "error": "Document not found"})
+                # show error not found
         else:
-            return JsonResponse({"success": False, "error": "Document not found"})
-            # show error not found
+            print("Error connecting to MongoDB.")
+            # show error 
     else:
-        print("Error connecting to MongoDB.")
-        # show error 
+        return redirect('logPlantFeed')   
 
 def dashboard(request): 
     name="Soil 001"
     description="First soil research"
     return render(request, 'dashboard.html',{'name':name,'description':description})
 
-def view_channel(request,channel_id):
+def view_channel(request,channel_id): 
     _id=ObjectId(channel_id)
     db,collection=connect_to_mongodb('Channel','dashboard')
     if db is not None and collection is not None:
@@ -149,13 +152,14 @@ def view_channel_sensor(request, channel_id):
                 humid_values = []
                 temp_values = []
                 timestamps_humid_temp = []
+                API=""
                 for datapoint in sensor:
                     if 'DHT_sensor' in datapoint:
                         dht = datapoint['DHT_sensor']
                         db_humid_temp, collection_humid_temp = connect_to_mongodb('sensor', 'DHT11')
                         dht_id = ObjectId(dht)
                         humid_temp_data = collection_humid_temp.find_one({"_id": dht_id})
-                        
+                        API=humid_temp_data.get("API_KEY",'')
                         for data_point in humid_temp_data.get('sensor_data', []):
                             humidity_value = data_point.get('humidity_value', '')
                             temperature_value = data_point.get('temperature_value', '')
@@ -172,6 +176,7 @@ def view_channel_sensor(request, channel_id):
                         db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
                         ph_id = ObjectId(ph)
                         ph_data = collection_ph.find_one({"_id": ph_id})
+                        API=ph_data.get("API_KEY",'')
                         if ph_data:
                             for data_point in ph_data.get('sensor_data', []):
                                 ph_values.append(data_point.get('ph_value', ''))
@@ -188,7 +193,8 @@ def view_channel_sensor(request, channel_id):
                     "timestamps": timestamps,
                     "humid_values": humid_values,
                     "temp_values": temp_values,
-                    "timestamps_humid_temp": timestamps_humid_temp
+                    "timestamps_humid_temp": timestamps_humid_temp,
+                    "API":API
                 }
 
                 print("before model")
@@ -225,15 +231,6 @@ def view_channel_sensor(request, channel_id):
                     # Add the crop recommendation to the context
                     context["crop_recommendations"] = crop_recommendations
 
-                    # Send the updated context data to WebSocket
-                    channel_layer = get_channel_layer()
-                    async_to_sync(channel_layer.group_send)(
-                        'sensor_data',
-                        {
-                            'type': 'sensor_data_message',
-                            'data': context  # You can customize the data you send
-                        }
-                    )
                 return render(request, 'dashboard.html', context)
             else:
                 return JsonResponse({"success": False, "error": "Document not found"})
