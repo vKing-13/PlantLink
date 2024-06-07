@@ -11,6 +11,7 @@
     {% bootstrap_javascript %}
     <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
     <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     {% include 'navbar.html' %}
 </head>
 <body>
@@ -18,6 +19,13 @@
         <div class="me-auto">
             <h3 class="mb-1">Dashboard: {{ channel_name }}</h3>
             <h6>{{description}}</h6>
+        </div>
+        <div class="d-flex align-items-center m-0 p-0">
+            <a href="{% url 'share_channel' channel_id=channel_id %}" class="d-flex align-items-center btn-create text-light border-0 px-2 py-0 rounded-3">
+                <span class="p-0 m-0 mb-1"><svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" fill="currentColor" class="bi bi-file-earmark-plus py-0 my-0" viewBox="0 0 16 16">
+                <path d="M8 6.5a.5.5 0 0 1 .5.5v1.5H10a.5.5 0 0 1 0 1H8.5V11a.5.5 0 0 1-1 0V9.5H6a.5.5 0 0 1 0-1h1.5V7a.5.5 0 0 1 .5-.5"/>
+                <path d="M14 4.5V14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V2a2 2 0 0 1 2-2h5.5zm-3 0A1.5 1.5 0 0 1 9.5 3V1H4a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V4.5z"/>
+              </svg></span>Share Channel</a>
         </div>
         <div class="d-flex align-items-center m-0 p-0">
             <a href="{% url "manage_sensor" channel_id=channel_id %}" class="d-flex align-items-center btn-create text-light border-0 px-2 py-0 rounded-3 text-decoration-none">
@@ -34,74 +42,175 @@
               </svg></span>Add Sensor</a>
         </div>
     </div>
-    <div id="canvas" class="d-flex justify-content-between">
+    <div id="canvas" class="d-flex align-content-start flex-wrap justify-content-between">
         <!-- Canvas elements and dropdowns will be added here dynamically -->
+        <div id="chart-spinner-container" class="text-center" style="width: 400px; height: 400px; display: none;">
+            <div class="spinner-border" role="status">
+                <span class="sr-only"></span>
+            </div>
+            <div id="chart-loading-message">Graph is being loaded...</div>
+        </div>
     </div>
+
     <div id="testing"></div>
     <div id="empty_sensor">Add a new sensor to view a chart!</div>
+    
+    <div class="container mt-5 mx-0 px-0">
+        <h2 class="mb-4">Crop Recommendations</h2>
+        <table id="crop-recommendations-table" class="table table-striped">
+            <thead>
+                <tr>
+                    <th scope="col">Crop</th>
+                    <th scope="col">Prediction Accuracy (%)</th>
+                </tr>
+            </thead>
+            <tbody id="crop-recommendations">
+                <!-- Table rows will be added here dynamically -->
+            </tbody>
+        </table>
+        <div id="table-spinner-container" class="text-center" style="display: none;">
+            <div class="spinner-border" role="status">
+                <span class="sr-only"></span>
+            </div>
+            <div id="table-loading-message">Table is being loaded...</div>
+        </div>
+    </div>
+    
+    
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
-        const socket = new WebSocket('wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/');
-    
-        socket.onopen = function() {
-            console.log('WebSocket connection established');
-            // Send the API key to register the connection
-            socket.send(JSON.stringify({
-                action: 'setAPI',
-                api: "{{ API|escapejs }}"
-            }));
-        };
-    
-        socket.onclose = function(event) {
-            console.log('WebSocket connection closed', event);
-        };
-    
-        socket.onerror = function(error) {
-            console.log('WebSocket error', error);
-        };
-    
-        socket.onmessage = function(event) {
-            const data = JSON.parse(event.data);
-            console.log('WebSocket message received', data);
-    
-            if (data.privateMessage) {
-                const messageContent = data.privateMessage;  // Directly use the object
-                console.log('Parsed message content', messageContent);
-    
-                if (messageContent.sensor_type === 'DHT11') {
-                    updateHumidityChart(messageContent);
-                    updateTemperatureChart(messageContent);
-                } else if (messageContent.sensor_type === 'ph_sensor') {
-                    updatePhChart(messageContent);
-                }
+        document.addEventListener("DOMContentLoaded", function() {
+            const channelId = "{{ channel_id }}"; 
+        
+            // Show the spinners and messages before fetching data
+            if ("{{ graph_count }}" > 0) {
+                document.getElementById('chart-spinner-container').style.display = 'block';
+                document.getElementById('table-spinner-container').style.display = 'block';
+            } else {
+                document.getElementById('empty_sensor').style.display = 'block';
             }
-        };
-    
-        function updateHumidityChart(data) {
-            if (!humidChart) return;
-            humidChart.data.labels.push(data.timestamp);
-            humidChart.data.datasets[0].data.push(parseFloat(data.humidity_value));
-            humidChart.update();
-            console.log('Updating humidity chart with data:', data);
-        }
-    
-        function updateTemperatureChart(data) {
-            if (!tempChart) return;
-            tempChart.data.labels.push(data.timestamp);
-            tempChart.data.datasets[0].data.push(parseFloat(data.temperature_value));
-            tempChart.update();
-            console.log('Updating temperature chart with data:', data);
-        }
-    
-        function updatePhChart(data) {
-            if (!phChart) return;
-            phChart.data.labels.push(data.timestamp);
-            phChart.data.datasets[0].data.push(parseFloat(data.ph_value));
-            phChart.update();
-            console.log('Updating pH chart with data:', data);
-        }
-    
+        
+            fetch(`/mychannel/${channelId}/get_dashboard_data/`)  // Correct the fetch URL
+                .then(response => response.json())
+                .then(data => {
+                    // Hide the spinners and messages after fetching data
+                    document.getElementById('chart-spinner-container').style.display = 'none';
+                    document.getElementById('table-spinner-container').style.display = 'none';
+        
+                    // Extract data for charts and table
+                    const phData = data.ph_values;
+                    const timestamps = data.timestamps;
+                    const humidData = data.humid_values;
+                    const tempData = data.temp_values;
+                    const timestamps_temp_humid = data.timestamps_humid_temp;
+        
+                    // Check if there is any data to show charts
+                    if (phData.length === 0 && humidData.length === 0 && tempData.length === 0) {
+                        document.getElementById('empty_sensor').style.display = 'block';
+                    } else {
+                        document.getElementById('empty_sensor').style.display = 'none';
+        
+                        // Update charts
+                        if (phData.length > 0) {
+                            const phCanvasContainer = document.createElement('div');
+                            phCanvasContainer.className = 'canvas-container';
+                            const phCanvas = document.createElement('canvas');
+                            phCanvas.id = 'phChart';
+                            phCanvas.width = 450;
+                            phCanvas.height = 400;
+                            phCanvasContainer.appendChild(phCanvas);
+                            document.getElementById('canvas').appendChild(phCanvasContainer);
+                            const phChart = createChart(phCanvas.id, phData, timestamps, 'PH Value');
+                            addDropdown(phCanvasContainer, phChart);
+                        }
+        
+                        if (humidData.length > 0) {
+                            const humidCanvasContainer = document.createElement('div');
+                            humidCanvasContainer.className = 'canvas-container';
+                            const humidCanvas = document.createElement('canvas');
+                            humidCanvas.id = 'humidChart';
+                            humidCanvas.width = 450;
+                            humidCanvas.height = 400;
+                            humidCanvasContainer.appendChild(humidCanvas);
+                            document.getElementById('canvas').appendChild(humidCanvasContainer);
+                            const humidChart = createChart(humidCanvas.id, humidData, timestamps_temp_humid, 'Humidity Value');
+                            addDropdown(humidCanvasContainer, humidChart);
+                        }
+        
+                        if (tempData.length > 0) {
+                            const tempCanvasContainer = document.createElement('div');
+                            tempCanvasContainer.className = 'canvas-container';
+                            const tempCanvas = document.createElement('canvas');
+                            tempCanvas.id = 'tempChart';
+                            tempCanvas.width = 450;
+                            tempCanvas.height = 400;
+                            tempCanvasContainer.appendChild(tempCanvas);
+                            document.getElementById('canvas').appendChild(tempCanvasContainer);
+                            const tempChart = createChart(tempCanvas.id, tempData, timestamps_temp_humid, 'Temperature Value');
+                            addDropdown(tempCanvasContainer, tempChart);
+                        }
+                    }
+        
+                    if ("{{ graph_count }}" > 0) {
+                        const cropRecommendations = data.crop_recommendations;
+                        const cropRecommendationsContainer = document.getElementById('crop-recommendations');
+                        cropRecommendations.forEach(recommendation => {
+                            const row = document.createElement('tr');
+                            const cropCell = document.createElement('td');
+                            cropCell.innerText = recommendation.crop;
+                            const accuracyCell = document.createElement('td');
+                            accuracyCell.innerText = recommendation.accuracy.toFixed(2);
+                            row.appendChild(cropCell);
+                            row.appendChild(accuracyCell);
+                            cropRecommendationsContainer.appendChild(row);
+                        });
+                    }
+        
+                    // Initialize WebSocket connection
+                    const socket = new WebSocket('wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/');
+            
+                    socket.onopen = function() {
+                        console.log('WebSocket connection established');
+                        // Send the API key to register the connection
+                        socket.send(JSON.stringify({
+                            action: 'setAPI',
+                            api: data.API  // Use the API key from the fetched data
+                        }));
+                    };
+                
+                    socket.onclose = function(event) {
+                        console.log('WebSocket connection closed', event);
+                    };
+                
+                    socket.onerror = function(error) {
+                        console.log('WebSocket error', error);
+                    };
+                
+                    socket.onmessage = function(event) {
+                        const messageData = JSON.parse(event.data);
+                        console.log('WebSocket message received', messageData);
+                
+                        if (messageData.privateMessage) {
+                            const messageContent = JSON.parse(messageData.privateMessage);  // Parse the message content
+                            console.log('Parsed message content', messageContent);
+                
+                            if (messageContent.sensor_type === 'DHT11') {
+                                updateHumidityChart(messageContent);
+                                updateTemperatureChart(messageContent);
+                            } else if (messageContent.sensor_type === 'ph_sensor') {
+                                updatePhChart(messageContent);
+                            }
+                        }
+                    };
+                })
+                .catch(error => {
+                    console.error('Error fetching dashboard data:', error);
+                    // Hide the spinners and show error messages if needed
+                    document.getElementById('chart-spinner-container').style.display = 'none';
+                    document.getElementById('table-spinner-container').style.display = 'none';
+                });
+        });
+        
         function createChart(canvasId, data, labels, label, type = 'line') {
             const config = {
                 type: type,
@@ -139,7 +248,7 @@
             const canvas = document.getElementById(canvasId);
             return new Chart(canvas, config);
         }
-    
+        
         function addDropdown(container, chart) {
             const dropdown = document.createElement('select');
             dropdown.className = 'chart-type-dropdown';
@@ -163,79 +272,32 @@
             });
             container.appendChild(dropdown);
         }
-    
-        const canvasContainer = document.getElementById('canvas');
-        const empty_sensor = document.getElementById('empty_sensor');
-        empty_sensor.style.display = 'none';
-    
-        const phData = {{ ph_values|safe }};
-        const timestamps = {{ timestamps|safe }};
-        const humidData = {{ humid_values|safe }};
-        const tempData = {{ temp_values|safe }};
-        const timestamps_temp_humid = {{ timestamps_humid_temp|safe }};
-    
-        let phChart, humidChart, tempChart;
-        if (phData.length > 0) {
-            const phCanvasContainer = document.createElement('div');
-            const phCanvas = document.createElement('canvas');
-            phCanvas.id = 'phChart';
-            phCanvas.width = 400;
-            phCanvas.height = 400;
-            phCanvasContainer.appendChild(phCanvas);
-            canvasContainer.appendChild(phCanvasContainer);
-            phChart = createChart(phCanvas.id, phData, timestamps, 'PH Value');
-            addDropdown(phCanvasContainer, phChart);
+        
+        function updateHumidityChart(data) {
+            if (!humidChart) return;
+            humidChart.data.labels.push(data.timestamp);
+            humidChart.data.datasets[0].data.push(parseFloat(data.humidity_value));
+            humidChart.update();
+            console.log('Updating humidity chart with data:', data);
         }
-    
-        if (humidData.length > 0) {
-            const humidCanvasContainer = document.createElement('div');
-            const humidCanvas = document.createElement('canvas');
-            humidCanvas.id = 'humidChart';
-            humidCanvas.width = 400;
-            humidCanvas.height = 400;
-            humidCanvasContainer.appendChild(humidCanvas);
-            canvasContainer.appendChild(humidCanvasContainer);
-            humidChart = createChart(humidCanvas.id, humidData, timestamps_temp_humid, 'Humidity Value');
-            addDropdown(humidCanvasContainer, humidChart);
+        
+        function updateTemperatureChart(data) {
+            if (!tempChart) return;
+            tempChart.data.labels.push(data.timestamp);
+            tempChart.data.datasets[0].data.push(parseFloat(data.temperature_value));
+            tempChart.update();
+            console.log('Updating temperature chart with data:', data);
         }
-    
-        if (tempData.length > 0) {
-            const tempCanvasContainer = document.createElement('div');
-            const tempCanvas = document.createElement('canvas');
-            tempCanvas.id = 'tempChart';
-            tempCanvas.width = 400;
-            tempCanvas.height = 400;
-            tempCanvasContainer.appendChild(tempCanvas);
-            canvasContainer.appendChild(tempCanvasContainer);
-            tempChart = createChart(tempCanvas.id, tempData, timestamps_temp_humid, 'Temperature Value');
-            addDropdown(tempCanvasContainer, tempChart);
-        }
-    
-        if (phData.length === 0 && humidData.length === 0 && tempData.length === 0) {
-            empty_sensor.style.display = 'block';
-        }
+        
+        function updatePhChart(data) {
+            if (!phChart) return;
+            phChart.data.labels.push(data.timestamp);
+            phChart.data.datasets[0].data.push(parseFloat(data.ph_value));
+            phChart.update();
+            console.log('Updating pH chart with data:', data);
+        }        
+        
     </script>
     
-    
-    
-    <div class="container mt-5 mx-0 px-0">
-        <h2 class="mb-4">Crop Recommendations</h2>
-        <table class="table table-striped">
-            <thead>
-                <tr>
-                    <th scope="col">Crop</th>
-                    <th scope="col">Prediction Accuracy (%)</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for recommendation in crop_recommendations %}
-                <tr>
-                    <td>{{ recommendation.crop }}</td>
-                    <td>{{ recommendation.accuracy }}</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-    </div>
 </body>
 </html>

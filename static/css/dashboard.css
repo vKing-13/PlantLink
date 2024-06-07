@@ -3,12 +3,16 @@ body {
     margin-right: 3rem;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
 }
-    
+
 .btn-create{
-    height:35px;
+    height: 35px;
     background-color: #30b265;
-    font-size:15px;
+    font-size: 15px;
 }
+
 .channel-header{
-    font-weight:600;
+    font-weight: 600;
 }
+
+
+
