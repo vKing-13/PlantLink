@@ -12,7 +12,8 @@ urlpatterns = [
     path('<str:channel_id>/get_dashboard_data/', views.getDashboardData, name="getDashboardData"),
     path('<str:channel_id>/get_shared_dashboard', views.getSharedDashboardDetail, name="getSharedDashboardDetail"),
     path('<str:channel_id>/shared_dashboard/', views.sharedDashboard, name="sharedDashboard"),
-    
+    path('embed/channel/<str:channel_id>/', views.render_embed_code, name='render_embed_code'),
+
     path('<str:channel_id>/manage_sensor', views.manage_sensor, name="manage_sensor"),
 
     path('<str:channel_id>/edit_sensor/<str:sensor_type>/<str:sensor_id>/', views.edit_sensor, name="edit_sensor"),

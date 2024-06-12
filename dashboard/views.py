@@ -58,11 +58,13 @@ def channels(request):
     else:
         return redirect('logPlantFeed')   
 
+# NOTUSED
 def dashboard(request): 
     name="Soil 001"
     description="First soil research"
     return render(request, 'dashboard.html',{'name':name,'description':description})
 
+# NOTUSED
 def view_channel(request,channel_id): 
     _id=ObjectId(channel_id)
     db,collection=connect_to_mongodb('Channel','dashboard')
@@ -122,6 +124,7 @@ def view_channel(request,channel_id):
         print("Error connecting to MongoDB.")
         # show error 
 
+# To train model
 def load_trained_model():
     model_path = '/home/shiroooo/PlantLink/static/dashboard/best_random_forest_model.pkl'
     if os.path.exists(model_path):
@@ -135,6 +138,7 @@ def load_trained_model():
         print("Model file not found.")
         return None
 
+# To view dashboard
 def view_channel_sensor(request, channel_id):
     if 'username' in request.COOKIES:
         _id = ObjectId(channel_id)
@@ -181,6 +185,11 @@ def view_channel_sensor(request, channel_id):
     else:
         return redirect('logPlantFeed')
 
+# To view dashboard
+def render_embed_code(request, channel_id):
+    return render(request, 'embed_dashboard.html', {'channel_id': channel_id})
+    
+# To view dashboard publicly
 def sharedDashboard(request, channel_id):
     _id = ObjectId(channel_id)
     db, collection = connect_to_mongodb('Channel', 'dashboard')
@@ -225,7 +234,8 @@ def sharedDashboard(request, channel_id):
             return JsonResponse({"success": False, "error": "Document not found"})
     else:
         print("Error connecting to MongoDB.")
-    
+
+# To make channel to public and send API to Plantfeed to 
 def share_channel(request,channel_id):
     _id=ObjectId(channel_id)
     db, collection = connect_to_mongodb("channel","dashboard")
@@ -240,6 +250,7 @@ def share_channel(request,channel_id):
                 plantfeed_link=""
                 channel_data = {
                     "channel_id": _id,
+                    "userid": request.COOKIES['userid'],
                     "embed_link": f"https://your-plantlink-domain.com/public/channel/{channel_id}"
                 }
                 response = requests.post(plantfeed_link,json=channel_data)
@@ -252,7 +263,8 @@ def share_channel(request,channel_id):
             return JsonResponse({"success": False, "error": "Document not found"})
     else:
         print("Error connecting to MongoDB.")
-        
+
+# To render dashboard data dynamically        
 def getDashboardData(request,channel_id):
     _id = ObjectId(channel_id)
     db, collection = connect_to_mongodb('Channel', 'dashboard')
@@ -309,41 +321,42 @@ def getDashboardData(request,channel_id):
                 "timestamps_humid_temp": timestamps_humid_temp,
                 "API":API,
             }
+            if humid_values or ph_values:
+                # Load the trained Random Forest model
+                model = load_trained_model()
+                if model:
+                    # Prepare input data for model prediction
+                    input_data = {
+                        'N': 0,  # Provide dummy values for features not used in prediction
+                        'P': 0,
+                        'K': 0,
+                        'temperature': float(temp_values[-1]) if temp_values else 0.0,  # Example temperature value
+                        'humidity': float(humid_values[-1]) if humid_values else 0.0,  # Example humidity value
+                        'ph': float(ph_values[-1]) if ph_values else 0.0,  # Example pH value
+                        'rainfall': 120.0,  # Example rainfall value
+                    }
 
-            # Load the trained Random Forest model
-            model = load_trained_model()
+                    input_df = pd.DataFrame([input_data])
 
-            if model:
-                # Prepare input data for model prediction
-                input_data = {
-                    'N': 0,  # Provide dummy values for features not used in prediction
-                    'P': 0,
-                    'K': 0,
-                    'temperature': float(temp_values[-1]) if temp_values else 0.0,  # Example temperature value
-                    'humidity': float(humid_values[-1]) if humid_values else 0.0,  # Example humidity value
-                    'ph': float(ph_values[-1]) if ph_values else 0.0,  # Example pH value
-                    'rainfall': 120.0,  # Example rainfall value
-                }
+                    # Make predictions using the model
+                    prediction = model.predict(input_df)
+                    
+                    probabilities = model.predict_proba(input_df)
+                    
+                    labels = model.classes_
 
-                input_df = pd.DataFrame([input_data])
+                    # Combine the labels with their probabilities and sort them by probability in descending order
+                    crop_recommendations = [
+                        {"crop": label, "accuracy": prob * 100}  # Convert to percentage
+                        for label, prob in zip(labels, probabilities[0])
+                    ]
+                    crop_recommendations.sort(key=lambda x: x["accuracy"], reverse=True)
+                    # Add the crop recommendation to the context
+                    context["crop_recommendations"] = crop_recommendations
 
-                # Make predictions using the model
-                prediction = model.predict(input_df)
+                return JsonResponse(context)
                 
-                probabilities = model.predict_proba(input_df)
-                
-                labels = model.classes_
 
-                # Combine the labels with their probabilities and sort them by probability in descending order
-                crop_recommendations = [
-                    {"crop": label, "accuracy": prob * 100}  # Convert to percentage
-                    for label, prob in zip(labels, probabilities[0])
-                ]
-                crop_recommendations.sort(key=lambda x: x["accuracy"], reverse=True)
-                # Add the crop recommendation to the context
-                context["crop_recommendations"] = crop_recommendations
-
-            return JsonResponse(context)
         else:
             return JsonResponse({"success": False, "error": "Document not found"})
     else:
