@@ -187,7 +187,49 @@ def view_channel_sensor(request, channel_id):
 
 # To view dashboard
 def render_embed_code(request, channel_id):
-    return render(request, 'embed_dashboard.html', {'channel_id': channel_id})
+    _id = ObjectId(channel_id)
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
+    if db is not None and collection is not None:
+        channel = collection.find_one({"_id": _id})
+        if channel:
+            channel_privacy = channel.get('privacy', '')
+            if channel_privacy == "public":
+                print("Found channel")
+                channel_name = channel.get('channel_name', '')
+                description = channel.get('description', '')
+                sensor = channel.get('sensor', '')
+                API=""
+                graph_count=0
+                for datapoint in sensor:
+                    if 'DHT_sensor' in datapoint:
+                        dht = datapoint['DHT_sensor']
+                        db_humid_temp, collection_humid_temp = connect_to_mongodb('sensor', 'DHT11')
+                        dht_id = ObjectId(dht)
+                        humid_temp_data = collection_humid_temp.find_one({"_id": dht_id})
+                        API=humid_temp_data.get("API_KEY",'')
+                        graph_count+=2
+                    if 'PH_sensor' in datapoint:
+                        ph = datapoint['PH_sensor']
+                        db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
+                        ph_id = ObjectId(ph)
+                        ph_data = collection_ph.find_one({"_id": ph_id})
+                        API=ph_data.get("API_KEY",'')
+                        graph_count+=1
+                context = {
+                    "channel_name": channel_name,
+                    "description": description,
+                    "channel_id": channel_id,
+                    "API":API,
+                    "graph_count":graph_count
+                }
+
+                return render(request, 'embed_dashboard.html', context)
+            else:
+                return JsonResponse({"success": False, "error": "Dashboard is not public"})
+        else:
+            return JsonResponse({"success": False, "error": "Document not found"})
+    else:
+        print("Error connecting to MongoDB.")
     
 # To view dashboard publicly
 def sharedDashboard(request, channel_id):
