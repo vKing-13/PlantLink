@@ -4,5 +4,5 @@ class XFrameOptionsMiddleware:
 
     def __call__(self, request):
         response = self.get_response(request)
-        response['X-Frame-Options'] = 'SAMEORIGIN'  # or 'ALLOW-FROM https://your-allowed-origin.com'
+        response['Content-Security-Policy'] = "https://921c-2001-d08-1810-5077-29e4-1c1b-a3bc-a094.ngrok-free.app/"  # Adjust the port if necessary
         return response
