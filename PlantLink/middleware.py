@@ -4,5 +4,5 @@ class XFrameOptionsMiddleware:
 
     def __call__(self, request):
         response = self.get_response(request)
-        response['Content-Security-Policy'] = "frame-ancestors 'self' http://localhost:8000 https://921c-2001-d08-1810-5077-29e4-1c1b-a3bc-a094.ngrok-free.app/"  # Adjust the port if necessary
+        response['Content-Security-Policy'] = "frame-ancestors 'self' http://localhost:8000 https://c5d2-27-125-241-47.ngrok-free.app/"  # Adjust the port if necessary
         return response
