@@ -291,16 +291,14 @@ def share_channel(request,channel_id):
             if result.modified_count>0:
                 plantfeed_link=""
                 channel_data = {
-                    "channel_id": _id,
                     "userid": request.COOKIES['userid'],
-                    "embed_link": f"https://your-plantlink-domain.com/public/channel/{channel_id}"
+                    "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/{channel_id}"
                 }
                 response = requests.post(plantfeed_link,json=channel_data)
                 if response.status_code == 200:
                     return redirect('')
                 else:
-                    return JsonResponse({"error":"Failed to share channel"},status=500)
-                    
+                    return JsonResponse({"error":"Failed to share channel"},status=500)  
         else:
             return JsonResponse({"success": False, "error": "Document not found"})
     else:
