@@ -17,6 +17,7 @@ from django.views.decorators.csrf import csrf_exempt
 
 def channels(request):
     if 'username' in request.COOKIES:
+        print(request.COOKIES['userid'])
         db,collection=connect_to_mongodb('Channel','dashboard')
 
         user_id = request.COOKIES['userid']
@@ -213,8 +214,8 @@ def sharedDashboard(request, channel_id):
         print("Error connecting to MongoDB.")
 
 # DECLARE PLANTFEED URL HERE
-PLANTFEED_SHARING_URL=""
-PLANTFEED_SHARING_API_PATH=PLANTFEED_SHARING_URL+"/group/PlantLink-Graph-API"
+PLANTFEED_SHARING_URL="https://f8a5-2001-d08-1289-3b7b-6503-ab7b-e782-1c9a.ngrok-free.app/"
+PLANTFEED_SHARING_API_PATH=PLANTFEED_SHARING_URL+"group/PlantLink-Graph-API"
 
 # To make channel to public and send API to Plantfeed to 
 def share_channel(request,channel_id,start_date, end_date):
@@ -246,99 +247,89 @@ def share_channel(request,channel_id,start_date, end_date):
 
 # TO SHARE PH CHART TO PLANTFEED
 @csrf_exempt
-def share_ph_chart(request,channel_id,start_date, end_date,chart_name):
-    _id=ObjectId(channel_id)
-    db, collection = connect_to_mongodb("channel","dashboard")
+def share_ph_chart(request, channel_id, start_date, end_date, chart_name):
+    _id = ObjectId(channel_id)
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
     if db is not None and collection is not None:
-        channel=collection.find_one({"_id":_id})
+        channel = collection.find_one({"_id": _id})
         if channel:
-            result = collection.update_one(
-                {"_id":_id},
-                {"$set":{"privacy": "public"}}
-                )
-            if result.modified_count>0:
-                plantfeed_link=PLANTFEED_SHARING_API_PATH
-                channel_data = {
-                    "channel_id": _id,
-                    "userid": request.COOKIES['userid'],
-                    "chart_type":"ph",
-                    "chart_name":{chart_name},
-                    "start_date":{start_date},
-                    "end_date":{end_date},
-                    # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/phChart/2024-03-05/2024-06-18/"
-                    "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/phChart/{start_date}/{end_date}/"
-                }
-                response = requests.post(plantfeed_link,json=channel_data)
-                if response.status_code == 200:
-                    return JsonResponse({"success":"Chart successfuly send to Plantfeed"},status=200)
-                else:
-                    return JsonResponse({"error":"Failed to share channel"},status=500)
+            print("found ph chart channel")
+            plantfeed_link = PLANTFEED_SHARING_API_PATH
+            channel_data = {
+                "channel_id": str(_id),
+                "userid": request.COOKIES.get('userid', ''),
+                "chart_type": "ph",
+                "chart_name": chart_name,
+                "start_date": start_date,
+                "end_date": end_date,
+                "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/phChart/{start_date}/{end_date}/"
+            }
+            response = requests.post(plantfeed_link, json=channel_data)
+            if response.status_code == 200:
+                return JsonResponse({"success": "Chart successfully sent to Plantfeed"}, status=200)
+            else:
+                return JsonResponse({"error": "Failed to share channel"}, status=500)
+            
+
         else:
-            return JsonResponse({"success": False, "error": "Document not found"})
+            return JsonResponse({"success": False, "error": "Document not found"}, status=404)
     else:
         print("Error connecting to MongoDB.")
+        return JsonResponse({"success": False, "error": "Error connecting to MongoDB"}, status=500)
 
 # TO SHARE HUMIDITY CHART TO PLANTFEED
+@csrf_exempt
 def share_humidity_chart(request,channel_id,start_date, end_date, chart_name):
-    _id=ObjectId(channel_id)
-    db, collection = connect_to_mongodb("channel","dashboard")
+    _id = ObjectId(channel_id)
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
     if db is not None and collection is not None:
-        channel=collection.find_one({"_id":_id})
+        channel = collection.find_one({"_id": _id})
         if channel:
-            result = collection.update_one(
-                {"_id":_id},
-                {"$set":{"privacy": "public"}}
-                )
-            if result.modified_count>0:
-                plantfeed_link=PLANTFEED_SHARING_API_PATH
-                channel_data = {
-                    "channel_id": _id,
-                    "userid": request.COOKIES['userid'],
-                    "chart_type":"humidity",
-                    "start_date":{start_date},
-                    "end_date":{end_date},
-                    "chart_name":{chart_name},
-                    # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
-                    "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/humidityChart/{start_date}/{end_date}/"
-                }
-                response = requests.post(plantfeed_link,json=channel_data)
-                if response.status_code == 200:
-                    return JsonResponse({"success":"Chart successfuly send to Plantfeed"},status=200)
-                else:
-                    return JsonResponse({"error":"Failed to share channel"},status=500)
+            plantfeed_link=PLANTFEED_SHARING_API_PATH
+            channel_data = {
+                "channel_id": str(_id),
+                # "userid": request.COOKIES.get('userid', ''),
+                "userid": "4",
+                "chart_type":"humidity",
+                "chart_name": chart_name,
+                "start_date": start_date,
+                "end_date": end_date,
+                "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/humidityChart/{start_date}/{end_date}/"
+            }
+            response = requests.post(plantfeed_link,json=channel_data)
+            if response.status_code == 200:
+                return JsonResponse({"success":"Chart successfuly send to Plantfeed"},status=200)
+            else:
+                return JsonResponse({"error":"Failed to share channel"},status=500)
         else:
             return JsonResponse({"success": False, "error": "Document not found"})
     else:
         print("Error connecting to MongoDB.")
 
 # TO SHARE TEMPERATURE CHART TO PLANTFEED
+@csrf_exempt
 def share_temperature_chart(request,channel_id,start_date, end_date, chart_name):
-    _id=ObjectId(channel_id)
-    db, collection = connect_to_mongodb("channel","dashboard")
+    _id = ObjectId(channel_id)
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
     if db is not None and collection is not None:
-        channel=collection.find_one({"_id":_id})
+        channel = collection.find_one({"_id": _id})
         if channel:
-            result = collection.update_one(
-                {"_id":_id},
-                {"$set":{"privacy": "public"}}
-                )
-            if result.modified_count>0:
-                plantfeed_link=PLANTFEED_SHARING_API_PATH
-                channel_data = {
-                    "channel_id": _id,
-                    "userid": request.COOKIES['userid'],
-                    "chart_type":"temperature",
-                    "start_date":{start_date},
-                    "end_date":{end_date},
-                    "chart_name":{chart_name},
-                    # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
-                    "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/temperatureChart/{start_date}/{end_date}/"
-                }
-                response = requests.post(plantfeed_link,json=channel_data)
-                if response.status_code == 200:
-                    return JsonResponse({"success":"Chart successfuly send to Plantfeed"},status=200)
-                else:
-                    return JsonResponse({"error":"Failed to share channel"},status=500)
+            plantfeed_link=PLANTFEED_SHARING_API_PATH
+            channel_data = {
+                "channel_id": _id,
+                "userid": request.COOKIES['userid'],
+                "chart_type":"temperature",
+                "start_date":{start_date},
+                "end_date":{end_date},
+                "chart_name":{chart_name},
+                # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
+                "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/temperatureChart/{start_date}/{end_date}/"
+            }
+            response = requests.post(plantfeed_link,json=channel_data)
+            if response.status_code == 200:
+                return JsonResponse({"success":"Chart successfuly send to Plantfeed"},status=200)
+            else:
+                return JsonResponse({"error":"Failed to share channel"},status=500)
         else:
             return JsonResponse({"success": False, "error": "Document not found"})
     else:

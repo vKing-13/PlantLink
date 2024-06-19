@@ -362,24 +362,34 @@
                 shareToPlantFeedButton.setAttribute('data-chart-type', chartType);
         
                 const form = document.getElementById('shareChartForm');
-                form.addEventListener('submit', function(event) {
-                    event.preventDefault();
-                    const chartName = document.getElementById('chartName').value;
-                    const startDate = document.getElementById('startDate').value;
-                    const endDate = document.getElementById('endDate').value;
         
-                    const shareOptions = document.getElementById('shareOptions');
-                    shareOptions.style.display = 'block';
+                // Remove any previous submit event listener
+                form.removeEventListener('submit', handleFormSubmit);
         
-                    const embedCode = document.getElementById('embedCode');
-                    embedCode.value = `https://pythonanywhere.com/mychannel/embed/channel/{{ channel_id }}/${chartType}/${startDate}/${endDate}/`;
-        
-                    shareToPlantFeedButton.setAttribute('data-start-date', startDate);
-                    shareToPlantFeedButton.setAttribute('data-end-date', endDate);
-                }, { once: true });
+                // Add new submit event listener
+                form.addEventListener('submit', handleFormSubmit);
             });
         
             container.appendChild(shareButton);
+        }
+        
+        function handleFormSubmit(event) {
+            event.preventDefault();
+            const chartName = document.getElementById('chartName').value;
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const shareToPlantFeedButton = document.getElementById('shareToPlantFeed');
+        
+            const shareOptions = document.getElementById('shareOptions');
+            shareOptions.style.display = 'block';
+        
+            const embedCode = document.getElementById('embedCode');
+            const chartType = shareToPlantFeedButton.getAttribute('data-chart-type');
+            embedCode.value = `https://pythonanywhere.com/mychannel/embed/channel/{{ channel_id }}/${chartType}/${startDate}/${endDate}/`;
+        
+            shareToPlantFeedButton.setAttribute('data-start-date', startDate);
+            shareToPlantFeedButton.setAttribute('data-end-date', endDate);
+            shareToPlantFeedButton.setAttribute('data-chart-name', chartName);
         }
         
         document.addEventListener('DOMContentLoaded', function() {
@@ -393,14 +403,14 @@
                     console.error('Error copying text: ', err);
                 });
             });
-            
+        
             const shareToPlantFeedButton = document.getElementById('shareToPlantFeed');
             shareToPlantFeedButton.addEventListener('click', function() {
                 const chartType = shareToPlantFeedButton.getAttribute('data-chart-type');
-                const chartName = document.getElementById('chartName').value;
+                const chartName = shareToPlantFeedButton.getAttribute('data-chart-name');
                 const startDate = shareToPlantFeedButton.getAttribute('data-start-date');
                 const endDate = shareToPlantFeedButton.getAttribute('data-end-date');
-                console.log(`here:${chartType}`)
+                console.log(`here:${chartType}`);
                 let url;
                 switch (chartType) {
                     case 'phChart':
@@ -421,12 +431,7 @@
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        chartName: chartName,
-                        startDate: startDate,
-                        endDate: endDate
-                    })
+                    }
                 })
                 .then(response => response.json())
                 .then(data => {
@@ -442,6 +447,8 @@
                 });
             });
         });
+        
+        
         
         function updateHumidityChart(data) {
             if (!humidChart) {
