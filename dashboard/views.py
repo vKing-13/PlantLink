@@ -212,7 +212,8 @@ def sharedDashboard(request, channel_id):
         print("Error connecting to MongoDB.")
 
 # DECLARE PLANTFEED URL HERE
-PLANT_FEED_URL=""
+PLANTFEED_SHARING_URL=""
+PLANTFEED_SHARING_API_PATH=PLANTFEED_SHARING_URL+"/group/PlantLink-Graph-API"
 
 # To make channel to public and send API to Plantfeed to 
 def share_channel(request,channel_id,start_date, end_date):
@@ -226,7 +227,7 @@ def share_channel(request,channel_id,start_date, end_date):
                 {"$set":{"privacy": "public"}}
                 )
             if result.modified_count>0:
-                plantfeed_link=PLANT_FEED_URL
+                plantfeed_link=PLANTFEED_SHARING_API_PATH
                 channel_data = {
                     "channel_id": _id,
                     "userid": request.COOKIES['userid'],
@@ -254,7 +255,7 @@ def share_ph_chart(request,channel_id,start_date, end_date):
                 {"$set":{"privacy": "public"}}
                 )
             if result.modified_count>0:
-                plantfeed_link=PLANT_FEED_URL
+                plantfeed_link=PLANTFEED_SHARING_API_PATH
                 channel_data = {
                     "channel_id": _id,
                     "userid": request.COOKIES['userid'],
@@ -286,7 +287,7 @@ def share_humidity_chart(request,channel_id,start_date, end_date):
                 {"$set":{"privacy": "public"}}
                 )
             if result.modified_count>0:
-                plantfeed_link=PLANT_FEED_URL
+                plantfeed_link=PLANTFEED_SHARING_API_PATH
                 channel_data = {
                     "channel_id": _id,
                     "userid": request.COOKIES['userid'],
@@ -318,7 +319,7 @@ def share_temperature_chart(request,channel_id,start_date, end_date):
                 {"$set":{"privacy": "public"}}
                 )
             if result.modified_count>0:
-                plantfeed_link=PLANT_FEED_URL
+                plantfeed_link=PLANTFEED_SHARING_API_PATH
                 channel_data = {
                     "channel_id": _id,
                     "userid": request.COOKIES['userid'],
