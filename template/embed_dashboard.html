@@ -9,7 +9,7 @@
     {% load bootstrap5 %}
     {% bootstrap_css %}
     {% bootstrap_javascript %}
-    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+    <link rel="stylesheet" href="{% static 'css/embed_dashboard.css' %}">
     <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
@@ -61,7 +61,9 @@
         let phChart = null, humidChart = null, tempChart = null;
         document.addEventListener("DOMContentLoaded", function() {
             const channelId = "{{ channel_id }}"; 
-        
+            let latest_ph = null;
+            let latest_humidity = null;
+            let latest_temperature = null;
             // Show the spinners and messages before fetching data
             if ("{{ graph_count }}" > 0) {
                 document.getElementById('chart-spinner-container').style.display = 'block';
@@ -73,6 +75,10 @@
             fetch(`/mychannel/${channelId}/get_dashboard_data/`)  // Correct the fetch URL
                 .then(response => response.json())
                 .then(data => {
+                    latest_ph = data.ph_values.length ? data.ph_values[data.ph_values.length - 1] : null;
+                    latest_humidity = data.humid_values.length ? data.humid_values[data.humid_values.length - 1] : null;
+                    latest_temperature = data.temp_values.length ? data.temp_values[data.temp_values.length - 1] : null;
+
                     // Hide the spinners and messages after fetching data
                     document.getElementById('chart-spinner-container').style.display = 'none';
                     document.getElementById('table-spinner-container').style.display = 'none';
@@ -179,8 +185,13 @@
                             if (messageContent.sensor_type === 'DHT11') {
                                 updateHumidityChart(messageContent);
                                 updateTemperatureChart(messageContent);
+                                latest_temperature = messageContent.temperature_value;
+                                latest_humidity = messageContent.humidity_value;
+                                updateCropSuggestions(latest_ph, latest_temperature, latest_humidity);
                             } else if (messageContent.sensor_type === 'ph_sensor') {
                                 updatePhChart(messageContent);
+                                latest_ph = messageContent.ph_value;
+                                updateCropSuggestions(latest_ph, latest_temperature, latest_humidity);
                             }
                         }
                     };
@@ -232,27 +243,46 @@
         }
         
         function addDropdown(container, chart) {
-            const dropdown = document.createElement('select');
-            dropdown.className = 'chart-type-dropdown';
-            dropdown.innerHTML = `
-                <option value="line">Line</option>
-                <option value="bar">Bar</option>
-                <option value="spline">Spline</option>
+            const dropdownWrapper = document.createElement('div');
+            dropdownWrapper.className = 'btn-group';
+        
+            const dropdownButton = document.createElement('button');
+            dropdownButton.className = 'btn btn-success dropdown-toggle mt-1';
+            dropdownButton.type = 'button';
+            dropdownButton.id = 'dropdownMenuButton';
+            dropdownButton.setAttribute('data-bs-toggle', 'dropdown');
+            dropdownButton.setAttribute('aria-expanded', 'false');
+            dropdownButton.innerText = 'Select Chart Type';
+        
+            const dropdownMenu = document.createElement('ul');
+            dropdownMenu.className = 'dropdown-menu';
+            dropdownMenu.setAttribute('aria-labelledby', 'dropdownMenuButton');
+            dropdownMenu.setAttribute('data-bs-display', 'static');
+            dropdownMenu.innerHTML = `
+                <li><a class="dropdown-item" href="#" data-type="line">Line</a></li>
+                <li><a class="dropdown-item" href="#" data-type="bar">Bar</a></li>
+                <li><a class="dropdown-item" href="#" data-type="spline">Spline</a></li>
             `;
-            dropdown.addEventListener('change', function() {
-                const selectedType = dropdown.value;
-                chart.config.type = selectedType === 'spline' ? 'line' : selectedType;
-                chart.config.options.elements = chart.config.options.elements || {};
-                chart.config.options.elements.line = chart.config.options.elements.line || {};
-                if (selectedType === 'spline') {
-                    chart.config.options.elements.line.tension = 0.4;
-                } else {
-                    chart.config.options.elements.line.tension = 0.1;
+        
+            dropdownMenu.addEventListener('click', function(event) {
+                const selectedType = event.target.getAttribute('data-type');
+                if (selectedType) {
+                    chart.config.type = selectedType === 'spline' ? 'line' : selectedType;
+                    chart.config.options.elements = chart.config.options.elements || {};
+                    chart.config.options.elements.line = chart.config.options.elements.line || {};
+                    if (selectedType === 'spline') {
+                        chart.config.options.elements.line.tension = 0.4;
+                    } else {
+                        chart.config.options.elements.line.tension = 0.1;
+                    }
+                    chart.data.datasets[0].backgroundColor = selectedType === 'bar' ? 'rgba(75, 192, 192, 0.2)' : 'rgb(75, 192, 192)';
+                    chart.update();
                 }
-                chart.data.datasets[0].backgroundColor = selectedType === 'bar' ? 'rgba(75, 192, 192, 0.2)' : 'rgb(75, 192, 192)';
-                chart.update();
             });
-            container.appendChild(dropdown);
+        
+            dropdownWrapper.appendChild(dropdownButton);
+            dropdownWrapper.appendChild(dropdownMenu);
+            container.appendChild(dropdownWrapper);
         }
         
         function updateHumidityChart(data) {
@@ -288,6 +318,39 @@
             console.log('Updating pH chart with data:', data);
         }        
         
+        function updateCropSuggestions(ph, temperature, humidity) {
+            fetch(`get_crop_suggestions/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ph: ph,
+                    temperature: temperature,
+                    humidity: humidity
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const cropRecommendationsContainer = document.getElementById('crop-recommendations');
+                cropRecommendationsContainer.innerHTML = '';  // Clear existing rows
+    
+                data.crop_recommendations.forEach(recommendation => {
+                    const row = document.createElement('tr');
+                    const cropCell = document.createElement('td');
+                    cropCell.innerText = recommendation.crop;
+                    const accuracyCell = document.createElement('td');
+                    accuracyCell.innerText = recommendation.accuracy.toFixed(2);
+                    row.appendChild(cropCell);
+                    row.appendChild(accuracyCell);
+                    cropRecommendationsContainer.appendChild(row);
+                });
+                console.log("cropRecommendationsContainer")
+            })
+            .catch(error => {
+                console.error('Error fetching crop suggestions:', error);
+            });
+        }
     </script>
     
 </body>

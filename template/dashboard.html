@@ -1,5 +1,5 @@
-{% load compress %} 
-{% load static %} 
+{% load compress %}
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -52,7 +52,6 @@
         </div>
     </div>
 
-    <div id="testing"></div>
     <div id="empty_sensor">Add a new sensor to view a chart!</div>
     
     <div class="container mt-5 mx-0 px-0">
@@ -75,15 +74,59 @@
             <div id="table-loading-message">Table is being loaded...</div>
         </div>
     </div>
-    
-    
 
+    <!-- Share Chart Modal -->
+    <div class="modal fade" id="shareChartModal" tabindex="-1" aria-labelledby="shareChartModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="shareChartModalLabel">Share Chart</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="shareChartForm">
+                        <div class="mb-3">
+                            <label for="chartName" class="form-label">Chart Name</label>
+                            <input type="text" class="form-control" id="chartName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="startDate" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="startDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="endDate" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="endDate" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Generate Embed Code</button>
+                    </form>
+                    <div id="shareOptions" style="display: none;">
+                        <br>
+                        <button type="button" class="btn btn-success mt-3" id="shareToPlantFeed">Share to PlantFeed</button>
+                        <div class="mt-3">
+                            <br>
+                            <label for="embedCode" class="form-label">Embed Code</label>
+                            <div class="copy-text row">
+                                <input id="embedCode" type="text" class="text col-11" value="" style="word-wrap:break-word" disabled/>
+                                <button class="col"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard " viewBox="0 0 16 16">
+                                    <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z"/>
+                                    <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z"/>
+                                  </svg></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
     <script>
         // Define chart variables
         let phChart = null, humidChart = null, tempChart = null;
         document.addEventListener("DOMContentLoaded", function() {
             const channelId = "{{ channel_id }}"; 
-        
+            let latest_ph = null;
+            let latest_humidity = null;
+            let latest_temperature = null;
             // Show the spinners and messages before fetching data
             if ("{{ graph_count }}" > 0) {
                 document.getElementById('chart-spinner-container').style.display = 'block';
@@ -95,6 +138,10 @@
             fetch(`/mychannel/${channelId}/get_dashboard_data/`)  // Correct the fetch URL
                 .then(response => response.json())
                 .then(data => {
+                    latest_ph = data.ph_values.length ? data.ph_values[data.ph_values.length - 1] : null;
+                    latest_humidity = data.humid_values.length ? data.humid_values[data.humid_values.length - 1] : null;
+                    latest_temperature = data.temp_values.length ? data.temp_values[data.temp_values.length - 1] : null;
+
                     // Hide the spinners and messages after fetching data
                     document.getElementById('chart-spinner-container').style.display = 'none';
                     document.getElementById('table-spinner-container').style.display = 'none';
@@ -105,8 +152,6 @@
                     const humidData = data.humid_values || [];
                     const tempData = data.temp_values || [];
                     const timestamps_temp_humid = data.timestamps_humid_temp || [];
-        
-                    
         
                     // Check if there is any data to show charts
                     if (phData.length === 0 && humidData.length === 0 && tempData.length === 0) {
@@ -126,6 +171,7 @@
                             document.getElementById('canvas').appendChild(phCanvasContainer);
                             phChart = createChart(phCanvas.id, phData, timestamps, 'PH Value');
                             addDropdown(phCanvasContainer, phChart);
+                            addShareButton(phCanvasContainer, phCanvas.id, "phChart");
                         }
         
                         if (humidData.length > 0) {
@@ -139,6 +185,7 @@
                             document.getElementById('canvas').appendChild(humidCanvasContainer);
                             humidChart = createChart(humidCanvas.id, humidData, timestamps_temp_humid, 'Humidity Value');
                             addDropdown(humidCanvasContainer, humidChart);
+                            addShareButton(humidCanvasContainer, humidCanvas.id, "humidityChart");
                         }
         
                         if (tempData.length > 0) {
@@ -152,6 +199,7 @@
                             document.getElementById('canvas').appendChild(tempCanvasContainer);
                             tempChart = createChart(tempCanvas.id, tempData, timestamps_temp_humid, 'Temperature Value');
                             addDropdown(tempCanvasContainer, tempChart);
+                            addShareButton(tempCanvasContainer, tempCanvas.id, "temperatureChart");
                         }
                     }
         
@@ -201,8 +249,13 @@
                             if (messageContent.sensor_type === 'DHT11') {
                                 updateHumidityChart(messageContent);
                                 updateTemperatureChart(messageContent);
+                                latest_temperature = messageContent.temperature_value;
+                                latest_humidity = messageContent.humidity_value;
+                                updateCropSuggestions(latest_ph, latest_temperature, latest_humidity);
                             } else if (messageContent.sensor_type === 'ph_sensor') {
                                 updatePhChart(messageContent);
+                                latest_ph = messageContent.ph_value;
+                                updateCropSuggestions(latest_ph, latest_temperature, latest_humidity);
                             }
                         }
                     };
@@ -258,7 +311,7 @@
             dropdownWrapper.className = 'btn-group';
         
             const dropdownButton = document.createElement('button');
-            dropdownButton.className = 'btn btn-danger dropdown-toggle';
+            dropdownButton.className = 'btn btn-success dropdown-toggle mt-1';
             dropdownButton.type = 'button';
             dropdownButton.id = 'dropdownMenuButton';
             dropdownButton.setAttribute('data-bs-toggle', 'dropdown');
@@ -296,7 +349,99 @@
             container.appendChild(dropdownWrapper);
         }
         
+        function addShareButton(container, canvasId, chartType) {
+            const shareButton = document.createElement('button');
+            shareButton.className = 'btn btn-primary mt-1 ms-2';
+            shareButton.innerText = 'Share Chart';
+            shareButton.setAttribute('data-bs-toggle', 'modal');
+            shareButton.setAttribute('data-bs-target', '#shareChartModal');
+            shareButton.setAttribute('data-chart-type', chartType);
         
+            shareButton.addEventListener('click', function() {
+                const shareToPlantFeedButton = document.getElementById('shareToPlantFeed');
+                shareToPlantFeedButton.setAttribute('data-chart-type', chartType);
+        
+                const form = document.getElementById('shareChartForm');
+                form.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    const chartName = document.getElementById('chartName').value;
+                    const startDate = document.getElementById('startDate').value;
+                    const endDate = document.getElementById('endDate').value;
+        
+                    const shareOptions = document.getElementById('shareOptions');
+                    shareOptions.style.display = 'block';
+        
+                    const embedCode = document.getElementById('embedCode');
+                    embedCode.value = `https://pythonanywhere.com/mychannel/embed/channel/{{ channel_id }}/${chartType}/${startDate}/${endDate}/`;
+        
+                    shareToPlantFeedButton.setAttribute('data-start-date', startDate);
+                    shareToPlantFeedButton.setAttribute('data-end-date', endDate);
+                }, { once: true });
+            });
+        
+            container.appendChild(shareButton);
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            const copyButton = document.querySelector('.copy-text button');
+            const embedCodeInput = document.getElementById('embedCode');
+        
+            copyButton.addEventListener('click', function() {
+                navigator.clipboard.writeText(embedCodeInput.value).then(() => {
+                    alert('Embed code copied to clipboard!');
+                }).catch(err => {
+                    console.error('Error copying text: ', err);
+                });
+            });
+            
+            const shareToPlantFeedButton = document.getElementById('shareToPlantFeed');
+            shareToPlantFeedButton.addEventListener('click', function() {
+                const chartType = shareToPlantFeedButton.getAttribute('data-chart-type');
+                const chartName = document.getElementById('chartName').value;
+                const startDate = shareToPlantFeedButton.getAttribute('data-start-date');
+                const endDate = shareToPlantFeedButton.getAttribute('data-end-date');
+                console.log(`here:${chartType}`)
+                let url;
+                switch (chartType) {
+                    case 'phChart':
+                        url = `/mychannel/{{ channel_id }}/share_chart/phChart/${startDate}/${endDate}/${chartName}/`;
+                        break;
+                    case 'humidityChart':
+                        url = `/mychannel/{{ channel_id }}/share_chart/humidityChart/${startDate}/${endDate}/${chartName}/`;
+                        break;
+                    case 'temperatureChart':
+                        url = `/mychannel/{{ channel_id }}/share_chart/temperatureChart/${startDate}/${endDate}/${chartName}/`;
+                        break;
+                    default:
+                        console.error('Invalid chart type');
+                        return;
+                }
+        
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        chartName: chartName,
+                        startDate: startDate,
+                        endDate: endDate
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Successfully shared chart to PlantFeed');
+                    } else {
+                        alert('Failed to share chart to PlantFeed');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error sharing chart:', error);
+                    alert('An error occurred while sharing the chart');
+                });
+            });
+        });
         
         function updateHumidityChart(data) {
             if (!humidChart) {
@@ -331,7 +476,39 @@
             console.log('Updating pH chart with data:', data);
         }        
         
-    </script>
+        function updateCropSuggestions(ph, temperature, humidity) {
+            fetch(`get_crop_suggestions/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    ph: ph,
+                    temperature: temperature,
+                    humidity: humidity
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                const cropRecommendationsContainer = document.getElementById('crop-recommendations');
+                cropRecommendationsContainer.innerHTML = '';  // Clear existing rows
     
+                data.crop_recommendations.forEach(recommendation => {
+                    const row = document.createElement('tr');
+                    const cropCell = document.createElement('td');
+                    cropCell.innerText = recommendation.crop;
+                    const accuracyCell = document.createElement('td');
+                    accuracyCell.innerText = recommendation.accuracy.toFixed(2);
+                    row.appendChild(cropCell);
+                    row.appendChild(accuracyCell);
+                    cropRecommendationsContainer.appendChild(row);
+                });
+                console.log("cropRecommendationsContainer")
+            })
+            .catch(error => {
+                console.error('Error fetching crop suggestions:', error);
+            });
+        }
+    </script>
 </body>
 </html>

@@ -12,6 +12,7 @@ import joblib
 import os
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from django.views.decorators.csrf import csrf_exempt
 # Create your views here.
 
 def channels(request):
@@ -119,7 +120,7 @@ def view_channel_sensor(request, channel_id):
     else:
         return redirect('logPlantFeed')
 
-# To view dashboard
+# To view embedded code dashboard
 def render_embed_code(request, channel_id):
     _id = ObjectId(channel_id)
     db, collection = connect_to_mongodb('Channel', 'dashboard')
@@ -244,7 +245,8 @@ def share_channel(request,channel_id,start_date, end_date):
         print("Error connecting to MongoDB.")
 
 # TO SHARE PH CHART TO PLANTFEED
-def share_ph_chart(request,channel_id,start_date, end_date):
+@csrf_exempt
+def share_ph_chart(request,channel_id,start_date, end_date,chart_name):
     _id=ObjectId(channel_id)
     db, collection = connect_to_mongodb("channel","dashboard")
     if db is not None and collection is not None:
@@ -260,6 +262,7 @@ def share_ph_chart(request,channel_id,start_date, end_date):
                     "channel_id": _id,
                     "userid": request.COOKIES['userid'],
                     "chart_type":"ph",
+                    "chart_name":{chart_name},
                     "start_date":{start_date},
                     "end_date":{end_date},
                     # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/phChart/2024-03-05/2024-06-18/"
@@ -267,7 +270,7 @@ def share_ph_chart(request,channel_id,start_date, end_date):
                 }
                 response = requests.post(plantfeed_link,json=channel_data)
                 if response.status_code == 200:
-                    return redirect('')
+                    return JsonResponse({"success":"Chart successfuly send to Plantfeed"},status=200)
                 else:
                     return JsonResponse({"error":"Failed to share channel"},status=500)
         else:
@@ -276,7 +279,7 @@ def share_ph_chart(request,channel_id,start_date, end_date):
         print("Error connecting to MongoDB.")
 
 # TO SHARE HUMIDITY CHART TO PLANTFEED
-def share_humidity_chart(request,channel_id,start_date, end_date):
+def share_humidity_chart(request,channel_id,start_date, end_date, chart_name):
     _id=ObjectId(channel_id)
     db, collection = connect_to_mongodb("channel","dashboard")
     if db is not None and collection is not None:
@@ -294,12 +297,13 @@ def share_humidity_chart(request,channel_id,start_date, end_date):
                     "chart_type":"humidity",
                     "start_date":{start_date},
                     "end_date":{end_date},
+                    "chart_name":{chart_name},
                     # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
                     "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/humidityChart/{start_date}/{end_date}/"
                 }
                 response = requests.post(plantfeed_link,json=channel_data)
                 if response.status_code == 200:
-                    return redirect('')
+                    return JsonResponse({"success":"Chart successfuly send to Plantfeed"},status=200)
                 else:
                     return JsonResponse({"error":"Failed to share channel"},status=500)
         else:
@@ -308,7 +312,7 @@ def share_humidity_chart(request,channel_id,start_date, end_date):
         print("Error connecting to MongoDB.")
 
 # TO SHARE TEMPERATURE CHART TO PLANTFEED
-def share_temperature_chart(request,channel_id,start_date, end_date):
+def share_temperature_chart(request,channel_id,start_date, end_date, chart_name):
     _id=ObjectId(channel_id)
     db, collection = connect_to_mongodb("channel","dashboard")
     if db is not None and collection is not None:
@@ -326,12 +330,13 @@ def share_temperature_chart(request,channel_id,start_date, end_date):
                     "chart_type":"temperature",
                     "start_date":{start_date},
                     "end_date":{end_date},
+                    "chart_name":{chart_name},
                     # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
                     "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/temperatureChart/{start_date}/{end_date}/"
                 }
                 response = requests.post(plantfeed_link,json=channel_data)
                 if response.status_code == 200:
-                    return redirect('')
+                    return JsonResponse({"success":"Chart successfuly send to Plantfeed"},status=200)
                 else:
                     return JsonResponse({"error":"Failed to share channel"},status=500)
         else:
@@ -542,6 +547,50 @@ def getSharedDashboardDetail(request,channel_id):
             return JsonResponse({"success": False, "error": "Document not found"})
     else:
         print("Error connecting to MongoDB.")
+
+# TO GET LATEST CROP SUGGESTION
+@csrf_exempt
+def getCropSuggestions(request,channel_id):
+    if request.method == 'POST':
+        data = json.loads(request.body)
+        ph = data.get('ph')
+        temperature = data.get('temperature')
+        humidity = data.get('humidity')
+
+        if ph is not None and temperature is not None and humidity is not None:
+            # Load the trained Random Forest model
+            model = load_trained_model()
+            if model:
+                # Prepare input data for model prediction
+                input_data = {
+                    'N': 0,  # Provide dummy values for features not used in prediction
+                    'P': 0,
+                    'K': 0,
+                    'temperature': float(temperature),
+                    'humidity': float(humidity),
+                    'ph': float(ph),
+                    'rainfall': 120.0,  # Example rainfall value
+                }
+
+                input_df = pd.DataFrame([input_data])
+
+                # Make predictions using the model
+                prediction = model.predict(input_df)
+                probabilities = model.predict_proba(input_df)
+                labels = model.classes_
+
+                # Combine the labels with their probabilities and sort them by probability in descending order
+                crop_recommendations = [
+                    {"crop": label, "accuracy": prob * 100}  # Convert to percentage
+                    for label, prob in zip(labels, probabilities[0])
+                ]
+                crop_recommendations.sort(key=lambda x: x["accuracy"], reverse=True)
+
+                return JsonResponse({"crop_recommendations": crop_recommendations})
+        else:
+            return JsonResponse({"success": False, "error": "Missing sensor data"})
+
+    return JsonResponse({"success": False, "error": "Invalid request method"})
 
 # DELETE CHANNEL
 def delete_channel(request,channel_id):
