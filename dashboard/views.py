@@ -335,6 +335,38 @@ def share_temperature_chart(request,channel_id,start_date, end_date, chart_name)
     else:
         print("Error connecting to MongoDB.")
 
+# TO SHARE CROP SUGGESTION TO PLANTFEED
+@csrf_exempt
+def share_crop_table(request, channel_id, start_date, end_date, table_name):
+    _id = ObjectId(channel_id)
+    db, collection = connect_to_mongodb('channel', 'dashboard')
+    if db is not None and collection is not None:
+        channel = collection.find_one({"_id": _id})
+        if channel:
+            result = collection.update_one(
+                {"_id": _id},
+                {"$set": {"privacy": "public"}}
+            )
+            if result.modified_count > 0:
+                plantfeed_link = PLANTFEED_SHARING_API_PATH
+                table_data = {
+                    "channel_id": _id,
+                    "userid": request.COOKIES['userid'],
+                    "table_name": table_name,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/cropTable/{start_date}/{end_date}/"
+                }
+                response = requests.post(plantfeed_link, json=table_data)
+                if response.status_code == 200:
+                    return JsonResponse({"success": "Table successfully sent to PlantFeed"}, status=200)
+                else:
+                    return JsonResponse({"error": "Failed to share table"}, status=500)
+        else:
+            return JsonResponse({"error": "Channel not found"}, status=404)
+    else:
+        return JsonResponse({"error": "Error connecting to MongoDB"}, status=500)
+
 # To render dashboard data dynamically        
 def getDashboardData(request,channel_id):
     _id = ObjectId(channel_id)
@@ -1076,6 +1108,15 @@ def render_temperature_chart(request, channel_id, start_date, end_date):
     else:
         print("Error connecting to MongoDB.")
 
+# For Crop Suggestion Table TEMPLATE
+def render_crop_table_by_date(request, channel_id, start_date, end_date):
+    context = {
+        "channel_id": channel_id,
+        "start_date": start_date,
+        "end_date": end_date,
+    }
+    return render(request, 'embed_crop_suggestion_table.html', context)
+
 # For retrieve Humidity and Temperature data
 def getHumidityTemperatureData(request, channel_id, start_date, end_date):
     _id = ObjectId(channel_id)
@@ -1163,3 +1204,107 @@ def getPHData(request, channel_id, start_date, end_date):
             return JsonResponse({"success": False, "error": "Document not found"})
     else:
         print("Error connecting to MongoDB.")
+
+@csrf_exempt
+def getCropRecommendationByDate(request, channel_id, start_date, end_date):
+    _id = ObjectId(channel_id)
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
+    if db is not None and collection is not None:
+        channel = collection.find_one({"_id": _id})
+
+        if channel:
+            sensor = channel.get('sensor', '')
+
+            ph_values = []
+            timestamps = []
+            humid_values = []
+            temp_values = []
+            timestamps_humid_temp = []
+            API = ""
+
+            # Convert start_date and end_date to datetime objects
+            start_date = datetime.strptime(start_date, '%Y-%m-%d').replace(tzinfo=pytz.utc)
+            end_date = datetime.strptime(end_date, '%Y-%m-%d').replace(tzinfo=pytz.utc)
+
+            for datapoint in sensor:
+                if 'DHT_sensor' in datapoint:
+                    dht = datapoint['DHT_sensor']
+                    db_humid_temp, collection_humid_temp = connect_to_mongodb('sensor', 'DHT11')
+                    dht_id = ObjectId(dht)
+                    humid_temp_data = collection_humid_temp.find_one({"_id": dht_id})
+                    API = humid_temp_data.get("API_KEY", '')
+                    for data_point in humid_temp_data.get('sensor_data', []):
+                        timestamp_obj = data_point.get('timestamp', datetime.utcnow()).replace(tzinfo=pytz.utc)
+                        if start_date <= timestamp_obj <= end_date:
+                            humidity_value = data_point.get('humidity_value', '')
+                            temperature_value = data_point.get('temperature_value', '')
+                            humid_values.append(humidity_value)
+                            temp_values.append(temperature_value)
+                            formatted_timestamp = timestamp_obj.strftime('%d-%m-%Y')
+                            timestamps_humid_temp.append(formatted_timestamp)
+
+                if 'PH_sensor' in datapoint:
+                    ph = datapoint['PH_sensor']
+                    db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
+                    ph_id = ObjectId(ph)
+                    ph_data = collection_ph.find_one({"_id": ph_id})
+                    API = ph_data.get("API_KEY", '')
+                    if ph_data:
+                        for data_point in ph_data.get('sensor_data', []):
+                            timestamp_obj = data_point.get('timestamp', datetime.utcnow()).replace(tzinfo=pytz.utc)
+                            if start_date <= timestamp_obj <= end_date:
+                                ph_values.append(data_point.get('ph_value', ''))
+                                formatted_timestamp = timestamp_obj.strftime('%d-%m-%Y')
+                                timestamps.append(formatted_timestamp)
+                    else:
+                        print("No PH sensor data found for the given ID")
+
+            context = {
+                "channel_id": channel_id,
+                "ph_values": ph_values,
+                "timestamps": timestamps,
+                "humid_values": humid_values,
+                "temp_values": temp_values,
+                "timestamps_humid_temp": timestamps_humid_temp,
+                "API": API,
+            }
+
+            if humid_values or ph_values:
+                # Load the trained Random Forest model
+                model = load_trained_model()
+                if model:
+                    # Prepare input data for model prediction
+                    input_data = {
+                        'N': 0,  # Provide dummy values for features not used in prediction
+                        'P': 0,
+                        'K': 0,
+                        'temperature': float(temp_values[-1]) if temp_values else 0.0,  # Example temperature value
+                        'humidity': float(humid_values[-1]) if humid_values else 0.0,  # Example humidity value
+                        'ph': float(ph_values[-1]) if ph_values else 0.0,  # Example pH value
+                        'rainfall': 120.0,  # Example rainfall value
+                    }
+
+                    input_df = pd.DataFrame([input_data])
+
+                    # Make predictions using the model
+                    prediction = model.predict(input_df)
+
+                    probabilities = model.predict_proba(input_df)
+
+                    labels = model.classes_
+
+                    # Combine the labels with their probabilities and sort them by probability in descending order
+                    crop_recommendations = [
+                        {"crop": label, "accuracy": prob * 100}  # Convert to percentage
+                        for label, prob in zip(labels, probabilities[0])
+                    ]
+                    crop_recommendations.sort(key=lambda x: x["accuracy"], reverse=True)
+                    # Add the crop recommendation to the context
+                    context["crop_recommendations"] = crop_recommendations
+
+                return JsonResponse(context)
+
+        else:
+            return JsonResponse({"success": False, "error": "Document not found"})
+    else:
+        return JsonResponse({"error": "Error connecting to MongoDB"}, status=500)

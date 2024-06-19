@@ -55,7 +55,10 @@
     <div id="empty_sensor">Add a new sensor to view a chart!</div>
     
     <div class="container mt-5 mx-0 px-0">
-        <h2 class="mb-4">Crop Recommendations</h2>
+        <div class="d-flex justify-content-between align-items-center">
+            <h2 class="mb-4">Crop Recommendations</h2>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#shareTableModal">Share Table</button>
+        </div>
         <table id="crop-recommendations-table" class="table table-striped">
             <thead>
                 <tr>
@@ -107,6 +110,50 @@
                             <label for="embedCode" class="form-label">Embed Code</label>
                             <div class="copy-text row">
                                 <input id="embedCode" type="text" class="text col-11" value="" style="word-wrap:break-word" disabled/>
+                                <button class="col"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard " viewBox="0 0 16 16">
+                                    <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z"/>
+                                    <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z"/>
+                                  </svg></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Table Modal -->
+    <div class="modal fade" id="shareTableModal" tabindex="-1" aria-labelledby="shareTableModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="shareTableModalLabel">Share Table</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="shareTableForm">
+                        <div class="mb-3">
+                            <label for="tableName" class="form-label">Table Name</label>
+                            <input type="text" class="form-control" id="tableName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tableStartDate" class="form-label">Start Date</label>
+                            <input type="date" class="form-control" id="tableStartDate" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="tableEndDate" class="form-label">End Date</label>
+                            <input type="date" class="form-control" id="tableEndDate" required>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Generate Embed Code</button>
+                    </form>
+                    <div id="shareTableOptions" style="display: none;">
+                        <br>
+                        <button type="button" class="btn btn-success mt-3" id="shareTableToPlantFeed">Share to PlantFeed</button>
+                        <div class="mt-3">
+                            <br>
+                            <label for="embedTableCode" class="form-label">Embed Code</label>
+                            <div class="copy-text row">
+                                <input id="embedTableCode" type="text" class="text col-11" value="" style="word-wrap:break-word" disabled/>
                                 <button class="col"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard " viewBox="0 0 16 16">
                                     <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1z"/>
                                     <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0z"/>
@@ -362,34 +409,25 @@
                 shareToPlantFeedButton.setAttribute('data-chart-type', chartType);
         
                 const form = document.getElementById('shareChartForm');
+                form.addEventListener('submit', function(event) {
+                    event.preventDefault();
+                    const chartName = document.getElementById('chartName').value;
+                    const startDate = document.getElementById('startDate').value;
+                    const endDate = document.getElementById('endDate').value;
         
-                // Remove any previous submit event listener
-                form.removeEventListener('submit', handleFormSubmit);
+                    const shareOptions = document.getElementById('shareOptions');
+                    shareOptions.style.display = 'block';
         
-                // Add new submit event listener
-                form.addEventListener('submit', handleFormSubmit);
+                    const embedCode = document.getElementById('embedCode');
+                    embedCode.value = `https://pythonanywhere.com/mychannel/embed/channel/{{ channel_id }}/${chartType}/${startDate}/${endDate}/`;
+        
+                    shareToPlantFeedButton.setAttribute('data-start-date', startDate);
+                    shareToPlantFeedButton.setAttribute('data-end-date', endDate);
+                    shareToPlantFeedButton.setAttribute('data-chart-name', chartName);
+                }, { once: true });
             });
         
             container.appendChild(shareButton);
-        }
-        
-        function handleFormSubmit(event) {
-            event.preventDefault();
-            const chartName = document.getElementById('chartName').value;
-            const startDate = document.getElementById('startDate').value;
-            const endDate = document.getElementById('endDate').value;
-            const shareToPlantFeedButton = document.getElementById('shareToPlantFeed');
-        
-            const shareOptions = document.getElementById('shareOptions');
-            shareOptions.style.display = 'block';
-        
-            const embedCode = document.getElementById('embedCode');
-            const chartType = shareToPlantFeedButton.getAttribute('data-chart-type');
-            embedCode.value = `https://pythonanywhere.com/mychannel/embed/channel/{{ channel_id }}/${chartType}/${startDate}/${endDate}/`;
-        
-            shareToPlantFeedButton.setAttribute('data-start-date', startDate);
-            shareToPlantFeedButton.setAttribute('data-end-date', endDate);
-            shareToPlantFeedButton.setAttribute('data-chart-name', chartName);
         }
         
         document.addEventListener('DOMContentLoaded', function() {
@@ -403,14 +441,14 @@
                     console.error('Error copying text: ', err);
                 });
             });
-        
+            
             const shareToPlantFeedButton = document.getElementById('shareToPlantFeed');
             shareToPlantFeedButton.addEventListener('click', function() {
                 const chartType = shareToPlantFeedButton.getAttribute('data-chart-type');
-                const chartName = shareToPlantFeedButton.getAttribute('data-chart-name');
+                const chartName = document.getElementById('chartName').value;
                 const startDate = shareToPlantFeedButton.getAttribute('data-start-date');
                 const endDate = shareToPlantFeedButton.getAttribute('data-end-date');
-                console.log(`here:${chartType}`);
+                console.log(`here:${chartType}`)
                 let url;
                 switch (chartType) {
                     case 'phChart':
@@ -446,9 +484,64 @@
                     alert('An error occurred while sharing the chart');
                 });
             });
+
+            const copyTableButton = document.querySelector('#shareTableOptions .copy-text button');
+            const embedTableCodeInput = document.getElementById('embedTableCode');
+        
+            copyTableButton.addEventListener('click', function() {
+                navigator.clipboard.writeText(embedTableCodeInput.value).then(() => {
+                    alert('Embed code copied to clipboard!');
+                }).catch(err => {
+                    console.error('Error copying text: ', err);
+                });
+            });
+
+            const shareTableForm = document.getElementById('shareTableForm');
+            const shareTableOptions = document.getElementById('shareTableOptions');
+            const shareTableToPlantFeedButton = document.getElementById('shareTableToPlantFeed');
+
+            shareTableForm.addEventListener('submit', function(event) {
+                event.preventDefault();
+                const tableName = document.getElementById('tableName').value;
+                const tableStartDate = document.getElementById('tableStartDate').value;
+                const tableEndDate = document.getElementById('tableEndDate').value;
+
+                shareTableOptions.style.display = 'block';
+                const embedTableCode = document.getElementById('embedTableCode');
+                embedTableCode.value = `https://pythonanywhere.com/mychannel/embed/channel/{{ channel_id }}/cropTable/${tableStartDate}/${tableEndDate}/`;
+
+                shareTableToPlantFeedButton.setAttribute('data-start-date', tableStartDate);
+                shareTableToPlantFeedButton.setAttribute('data-end-date', tableEndDate);
+                shareTableToPlantFeedButton.setAttribute('data-table-name', tableName);
+            });
+
+            shareTableToPlantFeedButton.addEventListener('click', function() {
+                const tableName = shareTableToPlantFeedButton.getAttribute('data-table-name');
+                const tableStartDate = shareTableToPlantFeedButton.getAttribute('data-start-date');
+                const tableEndDate = shareTableToPlantFeedButton.getAttribute('data-end-date');
+
+                const url = `/mychannel/{{ channel_id }}/share_table/cropTable/${tableStartDate}/${tableEndDate}/${tableName}/`;
+
+                fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        alert('Successfully shared table to PlantFeed');
+                    } else {
+                        alert('Failed to share table to PlantFeed');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error sharing table:', error);
+                    alert('An error occurred while sharing the table');
+                });
+            });
         });
-        
-        
         
         function updateHumidityChart(data) {
             if (!humidChart) {
