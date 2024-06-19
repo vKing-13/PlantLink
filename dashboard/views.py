@@ -58,72 +58,6 @@ def channels(request):
     else:
         return redirect('logPlantFeed')   
 
-# NOTUSED
-def dashboard(request): 
-    name="Soil 001"
-    description="First soil research"
-    return render(request, 'dashboard.html',{'name':name,'description':description})
-
-# NOTUSED
-def view_channel(request,channel_id): 
-    _id=ObjectId(channel_id)
-    db,collection=connect_to_mongodb('Channel','dashboard')
-    if db is not None and collection is not None:
-        channel=collection.find_one({"_id":_id})
-
-        if channel:
-            print("found channel")
-            channel_name=channel.get('channel_name','')
-            description=channel.get('description','')
-
-            db_ph,collection_ph=connect_to_mongodb('sensor','PH_data')
-            if db_ph is not None and collection_ph is not None:
-                ph_data = collection_ph.find({})
-                
-                ph_values=[]
-                timestamps=[]
-                
-                for data_point in ph_data:
-                    ph_values.append(data_point.get('ph_value',''))
-
-                    timestamp_obj = data_point.get('timestamp', datetime.utcnow())
-                    formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
-                    timestamps.append(formatted_timestamp)
-            db_humid_temp,collection_humid_temp=connect_to_mongodb('sensor','humid_temperature_data')
-            if db_humid_temp is not None and collection_humid_temp is not None:
-                humid_temp_data = collection_humid_temp.find({})
-                
-                humid_values=[]
-                temp_values=[]
-                timestamps_humid_temp=[]
-                
-                for data_point in humid_temp_data:
-                    humid_values.append(data_point.get('humidity_value',''))
-                    temp_values.append(data_point.get('temperature_value',''))
-
-                    timestamp_obj = data_point.get('timestamp', datetime.utcnow())
-                    formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%H:%M:%S')
-                    timestamps_humid_temp.append(formatted_timestamp)
-            context={
-                "channel_name":channel_name,
-                "description":description,
-                "ph_values": ph_values,
-                "timestamps": timestamps,
-                "humid_values": humid_values,
-                "temp_values":temp_values,
-                "timestamps_humid_temp":timestamps_humid_temp,
-                "channel_id":channel_id,
-            }
-            # Render a template or return JSON response with the document data
-            return render(request, 'dashboard.html',context)
-
-        else:
-            return JsonResponse({"success": False, "error": "Document not found"})
-            # show error not found
-    else:
-        print("Error connecting to MongoDB.")
-        # show error 
-
 # To train model
 def load_trained_model():
     model_path = os.path.join('static', 'dashboard', 'best_random_forest_model.pkl')
@@ -277,8 +211,11 @@ def sharedDashboard(request, channel_id):
     else:
         print("Error connecting to MongoDB.")
 
+# DECLARE PLANTFEED URL HERE
+PLANT_FEED_URL=""
+
 # To make channel to public and send API to Plantfeed to 
-def share_channel(request,channel_id):
+def share_channel(request,channel_id,start_date, end_date):
     _id=ObjectId(channel_id)
     db, collection = connect_to_mongodb("channel","dashboard")
     if db is not None and collection is not None:
@@ -289,18 +226,113 @@ def share_channel(request,channel_id):
                 {"$set":{"privacy": "public"}}
                 )
             if result.modified_count>0:
-                plantfeed_link=""
+                plantfeed_link=PLANT_FEED_URL
                 channel_data = {
                     "channel_id": _id,
                     "userid": request.COOKIES['userid'],
-                    "embed_link": f"https://your-plantlink-domain.com/public/channel/{channel_id}"
+                    "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/"
                 }
                 response = requests.post(plantfeed_link,json=channel_data)
                 if response.status_code == 200:
                     return redirect('')
                 else:
                     return JsonResponse({"error":"Failed to share channel"},status=500)
-                    
+        else:
+            return JsonResponse({"success": False, "error": "Document not found"})
+    else:
+        print("Error connecting to MongoDB.")
+
+# TO SHARE PH CHART TO PLANTFEED
+def share_channel(request,channel_id,start_date, end_date):
+    _id=ObjectId(channel_id)
+    db, collection = connect_to_mongodb("channel","dashboard")
+    if db is not None and collection is not None:
+        channel=collection.find_one({"_id":_id})
+        if channel:
+            result = collection.update_one(
+                {"_id":_id},
+                {"$set":{"privacy": "public"}}
+                )
+            if result.modified_count>0:
+                plantfeed_link=PLANT_FEED_URL
+                channel_data = {
+                    "channel_id": _id,
+                    "userid": request.COOKIES['userid'],
+                    "chart_type":"ph",
+                    "start_date":{start_date},
+                    "end_date":{end_date},
+                    # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/phChart/2024-03-05/2024-06-18/"
+                    "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/phChart/{start_date}/{end_date}/"
+                }
+                response = requests.post(plantfeed_link,json=channel_data)
+                if response.status_code == 200:
+                    return redirect('')
+                else:
+                    return JsonResponse({"error":"Failed to share channel"},status=500)
+        else:
+            return JsonResponse({"success": False, "error": "Document not found"})
+    else:
+        print("Error connecting to MongoDB.")
+
+# TO SHARE HUMIDITY CHART TO PLANTFEED
+def share_channel(request,channel_id,start_date, end_date):
+    _id=ObjectId(channel_id)
+    db, collection = connect_to_mongodb("channel","dashboard")
+    if db is not None and collection is not None:
+        channel=collection.find_one({"_id":_id})
+        if channel:
+            result = collection.update_one(
+                {"_id":_id},
+                {"$set":{"privacy": "public"}}
+                )
+            if result.modified_count>0:
+                plantfeed_link=PLANT_FEED_URL
+                channel_data = {
+                    "channel_id": _id,
+                    "userid": request.COOKIES['userid'],
+                    "chart_type":"humidity",
+                    "start_date":{start_date},
+                    "end_date":{end_date},
+                    # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
+                    "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/humidityChart/{start_date}/{end_date}/"
+                }
+                response = requests.post(plantfeed_link,json=channel_data)
+                if response.status_code == 200:
+                    return redirect('')
+                else:
+                    return JsonResponse({"error":"Failed to share channel"},status=500)
+        else:
+            return JsonResponse({"success": False, "error": "Document not found"})
+    else:
+        print("Error connecting to MongoDB.")
+
+# TO SHARE TEMPERATURE CHART TO PLANTFEED
+def share_channel(request,channel_id,start_date, end_date):
+    _id=ObjectId(channel_id)
+    db, collection = connect_to_mongodb("channel","dashboard")
+    if db is not None and collection is not None:
+        channel=collection.find_one({"_id":_id})
+        if channel:
+            result = collection.update_one(
+                {"_id":_id},
+                {"$set":{"privacy": "public"}}
+                )
+            if result.modified_count>0:
+                plantfeed_link=PLANT_FEED_URL
+                channel_data = {
+                    "channel_id": _id,
+                    "userid": request.COOKIES['userid'],
+                    "chart_type":"temperature",
+                    "start_date":{start_date},
+                    "end_date":{end_date},
+                    # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
+                    "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/temperatureChart/{start_date}/{end_date}/"
+                }
+                response = requests.post(plantfeed_link,json=channel_data)
+                if response.status_code == 200:
+                    return redirect('')
+                else:
+                    return JsonResponse({"error":"Failed to share channel"},status=500)
         else:
             return JsonResponse({"success": False, "error": "Document not found"})
     else:
@@ -510,7 +542,7 @@ def getSharedDashboardDetail(request,channel_id):
     else:
         print("Error connecting to MongoDB.")
 
-
+# DELETE CHANNEL
 def delete_channel(request,channel_id):
     _id=ObjectId(channel_id)
     db, collection = connect_to_mongodb("channel","dashboard")
@@ -524,6 +556,7 @@ def delete_channel(request,channel_id):
     else:
         print("Error connecting to MongoDB.")
 
+# EDIT CHANNEL
 def edit_channel(request, channel_id):
     if 'username' in request.COOKIES:
         if request.method == 'POST':
@@ -592,7 +625,8 @@ def edit_channel(request, channel_id):
                 return JsonResponse({"success": False, "error": "Error connecting to MongoDB"})
     else:
         return redirect('logPlantFeed') 
-        
+
+#CREATE CHANNEL 
 def create_channel(request):
     user_id= request.COOKIES['userid']
     if request.method == 'POST':
@@ -627,6 +661,7 @@ def create_channel(request):
     context = {'form': form}
     return render(request, 'create_channel.html', context)
 
+# ADD SENSOR
 def add_sensor(request, channel_id):
     if request.method == 'POST':
         channel_id = channel_id
@@ -703,6 +738,7 @@ def add_sensor(request, channel_id):
     context = {'form': form, "channel_id": channel_id}
     return render(request, 'add_sensor.html', context)
 
+# MANAGE SENSOR
 def manage_sensor(request, channel_id):
     _id = ObjectId(channel_id)
     db, collection = connect_to_mongodb('Channel', 'dashboard')
@@ -744,7 +780,8 @@ def manage_sensor(request, channel_id):
                 sensor_list.append(ph_data)
         context={"channel_id":channel_id,"sensor":sensor_list}
         return render(request, 'conf_sensor.html', context)
-    
+
+#   DELETE SENSOR 
 def delete_sensor(request, channel_id,sensor_id,sensor_type):
     _id = ObjectId(channel_id)
     sensor_id_to_delete = ObjectId(sensor_id)
@@ -785,6 +822,7 @@ def delete_sensor(request, channel_id,sensor_id,sensor_type):
             else:
                 return JsonResponse({"success": False, "error": "Document not found"})
 
+# EDIT SENSOR
 def edit_sensor(request, sensor_type, sensor_id, channel_id):
     if request.method == 'POST':
         # Fetch form data
@@ -873,3 +911,214 @@ def edit_sensor(request, sensor_type, sensor_id, channel_id):
 
     # Default response if request method is not 'POST'
     return JsonResponse({"success": False, "error": "Invalid request method"})
+
+# For PH Chart TEMPLATE
+def render_ph_chart(request, channel_id, start_date, end_date):
+    _id = ObjectId(channel_id)
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
+    if db is not None and collection is not None:
+        channel = collection.find_one({"_id": _id})
+        if channel:
+            channel_privacy = channel.get('privacy', '')
+            if channel_privacy == "public":
+                print("Found channel")
+                channel_name = channel.get('channel_name', '')
+                description = channel.get('description', '')
+                sensor = channel.get('sensor', '')
+                API = ""
+                graph_count = 0
+                for datapoint in sensor:
+                    if 'PH_sensor' in datapoint:
+                        ph = datapoint['PH_sensor']
+                        db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
+                        ph_id = ObjectId(ph)
+                        ph_data = collection_ph.find_one({"_id": ph_id})
+                        API = ph_data.get("API_KEY", '')
+                        graph_count += 1
+                context = {
+                    "channel_name": channel_name,
+                    "description": description,
+                    "channel_id": channel_id,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "API": API,
+                    "graph_count": graph_count
+                }
+
+                return render(request, 'embed_ph_chart.html', context)
+            else:
+                return JsonResponse({"success": False, "error": "Dashboard is not public"})
+        else:
+            return JsonResponse({"success": False, "error": "Document not found"})
+    else:
+        print("Error connecting to MongoDB.")
+
+# For Humidity Chart TEMPLATE
+def render_humidity_chart(request, channel_id, start_date, end_date):
+    _id = ObjectId(channel_id)
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
+    if db is not None and collection is not None:
+        channel = collection.find_one({"_id": _id})
+        if channel:
+            channel_privacy = channel.get('privacy', '')
+            if channel_privacy == "public":
+                print("Found channel")
+                channel_name = channel.get('channel_name', '')
+                description = channel.get('description', '')
+                sensor = channel.get('sensor', '')
+                API = ""
+                graph_count = 0
+                for datapoint in sensor:
+                    if 'DHT_sensor' in datapoint:
+                        dht = datapoint['DHT_sensor']
+                        db_humid_temp, collection_humid_temp = connect_to_mongodb('sensor', 'DHT11')
+                        dht_id = ObjectId(dht)
+                        humid_temp_data = collection_humid_temp.find_one({"_id": dht_id})
+                        API = humid_temp_data.get("API_KEY", '')
+                        graph_count += 1
+                context = {
+                    "channel_name": channel_name,
+                    "description": description,
+                    "channel_id": channel_id,
+                    "start_date": start_date,
+                    "end_date": end_date,
+                    "API": API,
+                    "graph_count": graph_count
+                }
+
+                return render(request, 'embed_humid_chart.html', context)
+            else:
+                return JsonResponse({"success": False, "error": "Dashboard is not public"})
+        else:
+            return JsonResponse({"success": False, "error": "Document not found"})
+    else:
+        print("Error connecting to MongoDB.")
+
+# For Temperature Chart TEMPLATE
+def render_temperature_chart(request, channel_id, start_date, end_date):
+    _id = ObjectId(channel_id)
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
+    if db is not None and collection is not None:
+        channel = collection.find_one({"_id": _id})
+        if channel:
+            channel_privacy = channel.get('privacy', '')
+            if channel_privacy == "public":
+                print("Found channel")
+                channel_name = channel.get('channel_name', '')
+                description = channel.get('description', '')
+                sensor = channel.get('sensor', '')
+                API = ""
+                graph_count = 0
+                for datapoint in sensor:
+                    if 'DHT_sensor' in datapoint:
+                        dht = datapoint['DHT_sensor']
+                        db_humid_temp, collection_humid_temp = connect_to_mongodb('sensor', 'DHT11')
+                        dht_id = ObjectId(dht)
+                        humid_temp_data = collection_humid_temp.find_one({"_id": dht_id})
+                        API = humid_temp_data.get("API_KEY", '')
+                        graph_count += 1
+                context = {
+                    "channel_name": channel_name,
+                    "description": description,
+                    "channel_id": channel_id,
+                    "API": API,
+                    "graph_count": graph_count,
+                    "start_date": start_date,
+                    "end_date": end_date
+                }
+
+                return render(request, 'embed_temperature_chart.html', context)
+            else:
+                return JsonResponse({"success": False, "error": "Dashboard is not public"})
+        else:
+            return JsonResponse({"success": False, "error": "Document not found"})
+    else:
+        print("Error connecting to MongoDB.")
+
+# For retrieve Humidity and Temperature data
+def getHumidityTemperatureData(request, channel_id, start_date, end_date):
+    _id = ObjectId(channel_id)
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
+    if db is not None and collection is not None:
+        channel = collection.find_one({"_id": _id})
+
+        if channel:
+            sensor = channel.get('sensor', '')
+            humid_values = []
+            temp_values = []
+            timestamps_humid_temp = []
+            API = ""
+            start_date = datetime.strptime(start_date, '%Y-%m-%d')
+            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+            
+            for datapoint in sensor:
+                if 'DHT_sensor' in datapoint:
+                    dht = datapoint['DHT_sensor']
+                    db_humid_temp, collection_humid_temp = connect_to_mongodb('sensor', 'DHT11')
+                    dht_id = ObjectId(dht)
+                    humid_temp_data = collection_humid_temp.find_one({"_id": dht_id})
+                    API = humid_temp_data.get("API_KEY", '')
+                    for data_point in humid_temp_data.get('sensor_data', []):
+                        timestamp_obj = data_point.get('timestamp', datetime.utcnow())
+                        if start_date <= timestamp_obj <= end_date:
+                            humidity_value = data_point.get('humidity_value', '')
+                            temperature_value = data_point.get('temperature_value', '')
+                            humid_values.append(humidity_value)
+                            temp_values.append(temperature_value)
+                            formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
+                            timestamps_humid_temp.append(formatted_timestamp)
+            context = {
+                "channel_id": channel_id,
+                "humid_values": humid_values,
+                "temp_values": temp_values,
+                "timestamps_humid_temp": timestamps_humid_temp,
+                "API": API,
+            }
+            return JsonResponse(context)
+        else:
+            return JsonResponse({"success": False, "error": "Document not found"})
+    else:
+        print("Error connecting to MongoDB.")
+
+# For retrieve PH data
+def getPHData(request, channel_id, start_date, end_date):
+    _id = ObjectId(channel_id)
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
+    if db is not None and collection is not None:
+        channel = collection.find_one({"_id": _id})
+
+        if channel:
+            sensor = channel.get('sensor', '')
+            ph_values = []
+            timestamps = []
+            API = ""
+            start_date = datetime.strptime(start_date, '%Y-%m-%d')
+            end_date = datetime.strptime(end_date, '%Y-%m-%d')
+
+            for datapoint in sensor:
+                if 'PH_sensor' in datapoint:
+                    ph = datapoint['PH_sensor']
+                    db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
+                    ph_id = ObjectId(ph)
+                    ph_data = collection_ph.find_one({"_id": ph_id})
+                    API = ph_data.get("API_KEY", '')
+                    if ph_data:
+                        for data_point in ph_data.get('sensor_data', []):
+                            timestamp_obj = data_point.get('timestamp', datetime.utcnow())
+                            if start_date <= timestamp_obj <= end_date:
+                                ph_values.append(data_point.get('ph_value', ''))
+                                formatted_timestamp = timestamp_obj.astimezone(pytz.utc).strftime('%d-%m-%Y')
+                                timestamps.append(formatted_timestamp)
+                    else:
+                        print("No PH sensor data found for the given ID")
+            context = {
+                "channel_id": channel_id,
+                "ph_values": ph_values,
+                "timestamps": timestamps,
+                "API": API,
+            }
+            return JsonResponse(context)
+        else:
+            return JsonResponse({"success": False, "error": "Document not found"})
+    else:
+        print("Error connecting to MongoDB.")

@@ -1,0 +1,187 @@
+{% load compress %} 
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Humidity Chart</title>
+    <link rel="icon" type="image/x-icon" href="{% static 'main/iconPL.ico' %}">
+    {% load bootstrap5 %}
+    {% bootstrap_css %}
+    {% bootstrap_javascript %}
+    <style>
+        .chart-container {
+            width: 450px;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="chart-container">
+        <div id="canvas" class="d-flex align-content-start flex-wrap justify-content-between">
+            <div id="chart-spinner-container" class="text-center" style="width: 400px; height: 400px; display: none;">
+                <div class="spinner-border" role="status">
+                    <span class="sr-only"></span>
+                </div>
+                <div id="chart-loading-message">Graph is being loaded...</div>
+            </div>
+        </div>
+        <div class="d-grid gap-2">
+            <button id="real-time" class="btn btn-primary mt-3" type="button">Real Time</button>
+            <button id="download" class="btn btn-primary mt-3">Download Chart as Image</button>
+            <div id="fb-root"></div>
+            <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_GB/sdk.js#xfbml=1&version=v20.0" nonce="6wGNTbvk"></script>
+            <div class="fb-share-button" data-href="https://shiroooo.pythonanywhere.com/mychannel/embed/channel/{{ channel_id }}/" data-layout="" data-size="">
+                <a target="_blank" href="https://www.facebook.com/sharer/sharer.php?u=https%3A%2F%2Fshiroooo.pythonanywhere.com%2Fmychannel%2F{{ channel_id }}%2Fshared_dashboard%2F&amp;src=sdkpreparse" class="fb-xfbml-parse-ignore">Share</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let humidChart = null;
+        let socket = null;
+
+        document.addEventListener("DOMContentLoaded", function() {
+            const channelId = "{{ channel_id }}";
+            const startDate = "{{ start_date }}";
+            const endDate = "{{ end_date }}";
+
+            document.getElementById('chart-spinner-container').style.display = 'block';
+            document.getElementById('real-time').style.display = 'none';
+            document.getElementById('download').style.display = 'none';
+            const url = `/mychannel/humidity_temperature/${channelId}/${startDate}/${endDate}/`;
+            fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                    document.getElementById('download').style.display = 'block';
+                    document.getElementById('real-time').style.display = 'block';
+                    document.getElementById('chart-spinner-container').style.display = 'none';
+                    const humidData = data.humid_values || [];
+                    const timestamps_temp_humid = data.timestamps_humid_temp || [];
+
+                    const humidCanvasContainer = document.createElement('div');
+                    humidCanvasContainer.className = 'canvas-container';
+                    const humidCanvas = document.createElement('canvas');
+                    humidCanvas.id = 'humidChart';
+                    humidCanvas.width = 450;
+                    humidCanvas.height = 400;
+                    humidCanvasContainer.appendChild(humidCanvas);
+                    document.getElementById('canvas').appendChild(humidCanvasContainer);
+                    humidChart = createChart(humidCanvas.id, humidData, timestamps_temp_humid, 'Humidity Value');
+                })
+                .catch(error => {
+                    console.error('Error fetching chart data:', error);
+                    document.getElementById('chart-spinner-container').style.display = 'none';
+                });
+
+            document.getElementById('real-time').addEventListener('click', function() {
+                if (socket) {
+                    socket.close();
+                }
+                socket = new WebSocket('wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/');
+                
+                socket.onopen = function() {
+                    console.log('WebSocket connection established');
+                    // Send the API key to register the connection
+                    socket.send(JSON.stringify({
+                        action: 'setAPI',
+                        api: "{{ API }}"  // Use the API key from the fetched data
+                    }));
+                };
+            
+                socket.onclose = function(event) {
+                    console.log('WebSocket connection closed', event);
+                };
+            
+                socket.onerror = function(error) {
+                    console.log('WebSocket error', error);
+                };
+            
+                socket.onmessage = function(event) {
+                    const messageData = JSON.parse(event.data);
+                    console.log('WebSocket message received', messageData);
+            
+                    if (messageData.privateMessage) {
+                        const messageContent = messageData.privateMessage;  // Directly use the object
+                        console.log('Parsed message content', messageContent);
+            
+                        if (messageContent.sensor_type === 'DHT11') {
+                            updateHumidityChart(messageContent);
+                        }
+                    }
+                };
+            });
+        });
+
+        function createChart(canvasId, data, labels, label, type = 'line') {
+            const config = {
+                type: type,
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: label,
+                        data: data,
+                        fill: false,
+                        borderColor: 'rgb(75, 192, 192)',
+                        backgroundColor: type === 'bar' ? 'rgba(255, 99, 132, 0.2)' : 'rgb(75, 192, 192)',
+                    }]
+                },
+                options: {
+                    elements: {
+                        line: {
+                            tension: type === 'spline' ? 0.4 : 0.1
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: false
+                        },
+                        x: {
+                            ticks: {
+                                maxRotation: 90,
+                                minRotation: 80
+                            }
+                        }
+                    },
+                    responsive: false,
+                    maintainAspectRatio: false
+                }
+            };
+            const canvas = document.getElementById(canvasId);
+            return new Chart(canvas, config);
+        }
+
+        function updateHumidityChart(data) {
+            if (!humidChart) {
+                console.error('humidChart is not defined');
+                return;
+            }
+            humidChart.data.labels.push(data.timestamp);
+            humidChart.data.datasets[0].data.push(parseFloat(data.humidity_value));
+            humidChart.update();
+            console.log('Updating humidity chart with data:', data);
+        }
+
+        document.getElementById('download').addEventListener('click', function() {
+            const canvas = document.getElementById('humidChart');
+            canvas.toBlob(function(blob) {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'chart.jpeg';
+                link.click();
+            }, 'image/jpeg');
+        });
+        
+        document.getElementById('download').addEventListener('click', function() {
+            const canvas = document.getElementById('temperatureChart');
+            canvas.toBlob(function(blob) {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'chart.jpeg';
+                link.click();
+            }, 'image/jpeg');
+        });
+    </script>
+</body>
+</html>
