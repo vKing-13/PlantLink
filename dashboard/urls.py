@@ -11,15 +11,18 @@ urlpatterns = [
     # RETRIEVE DASHBOARD DATA
     path('<str:channel_id>/get_dashboard_data/', views.getDashboardData, name="getDashboardData"),
     
+    # RETRIEVE LATEST CROP SUGGESTION
+    path('<str:channel_id>/get_crop_suggestions/', views.getCropSuggestions, name='get_crop_suggestions'),
+
     # VIEW PUBLIC DASHBOARD OR EMBED
     path('<str:channel_id>/get_shared_dashboard', views.getSharedDashboardDetail, name="getSharedDashboardDetail"),
     
     # SHARE DASHBOARD OR CHART
     path('<str:channel_id>/shared_dashboard/', views.sharedDashboard, name="sharedDashboard"),
     path('embed/channel/<str:channel_id>/', views.render_embed_code, name='render_embed_code'),
-    path('<str:channel_id>/share_chart/phChart/<str:start_date>/<str:end_date>/', views.share_ph_chart, name="share_ph_chart"),
-    path('<str:channel_id>/share_chart/humidityChart/<str:start_date>/<str:end_date>/', views.share_humidity_chart, name="share_humidity_chart"),
-    path('<str:channel_id>/share_chart/temperatureChart/<str:start_date>/<str:end_date>/', views.share_temperature_chart, name="share_temperature_chart"),
+    path('<str:channel_id>/share_chart/phChart/<str:start_date>/<str:end_date>/<str:chart_name>/', views.share_ph_chart, name="share_ph_chart"),
+    path('<str:channel_id>/share_chart/humidityChart/<str:start_date>/<str:end_date>/<str:chart_name>/', views.share_humidity_chart, name="share_humidity_chart"),
+    path('<str:channel_id>/share_chart/temperatureChart/<str:start_date>/<str:end_date>/<str:chart_name>/', views.share_temperature_chart, name="share_temperature_chart"),
 
     # RENDER CHART TEMPLATE
     path('embed/channel/<str:channel_id>/phChart/<str:start_date>/<str:end_date>/', views.render_ph_chart, name='render_ph_chart'),
