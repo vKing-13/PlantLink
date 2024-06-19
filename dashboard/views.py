@@ -243,7 +243,7 @@ def share_channel(request,channel_id,start_date, end_date):
         print("Error connecting to MongoDB.")
 
 # TO SHARE PH CHART TO PLANTFEED
-def share_channel(request,channel_id,start_date, end_date):
+def share_ph_chart(request,channel_id,start_date, end_date):
     _id=ObjectId(channel_id)
     db, collection = connect_to_mongodb("channel","dashboard")
     if db is not None and collection is not None:
@@ -275,7 +275,7 @@ def share_channel(request,channel_id,start_date, end_date):
         print("Error connecting to MongoDB.")
 
 # TO SHARE HUMIDITY CHART TO PLANTFEED
-def share_channel(request,channel_id,start_date, end_date):
+def share_humidity_chart(request,channel_id,start_date, end_date):
     _id=ObjectId(channel_id)
     db, collection = connect_to_mongodb("channel","dashboard")
     if db is not None and collection is not None:
@@ -307,7 +307,7 @@ def share_channel(request,channel_id,start_date, end_date):
         print("Error connecting to MongoDB.")
 
 # TO SHARE TEMPERATURE CHART TO PLANTFEED
-def share_channel(request,channel_id,start_date, end_date):
+def share_temperature_chart(request,channel_id,start_date, end_date):
     _id=ObjectId(channel_id)
     db, collection = connect_to_mongodb("channel","dashboard")
     if db is not None and collection is not None:
