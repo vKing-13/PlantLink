@@ -207,6 +207,23 @@ def combined_post(request):
         try:
             data = json.loads(request.body)
             sensor_type = data.get("sensor_type")
+            API_KEY = data.get('API_KEY')
+
+            if API_KEY is None:
+                return JsonResponse({'error': 'API_KEY is required'}, status=400)
+            
+            # Check if the API_KEY is allowed in the channel:dashboard
+            db_channel, collection_channel = connect_to_mongodb('Channel', 'dashboard')
+            if db_channel is not None and collection_channel is not None:
+                channel = collection_channel.find_one({"API_KEY": API_KEY})
+                if channel:
+                    allow_API = channel.get('allow_API', '')
+                    if allow_API != 'permit':
+                        return JsonResponse({'error': 'API access is not permitted for this API_KEY'}, status=403)
+                else:
+                    return JsonResponse({'error': 'API_KEY not found in the channel:dashboard'}, status=404)
+            else:
+                return JsonResponse({'error': 'Database connection error'}, status=500)
 
             if sensor_type == "DHT11":
                 humidity_value = data.get('humidity')
@@ -223,15 +240,16 @@ def combined_post(request):
                 if db is not None and collection is not None:
                     filter_criteria = {'API_KEY': API_KEY}
                     existing_document = collection.find_one(filter_criteria)
+                    humidity_value_formatted = f'{humidity_value:.2f}'
+                    temperature_value_formatted = f'{temperature_value:.2f}'
+                    timestamp = datetime.now()
+                    doc = {
+                        'humidity_value': humidity_value_formatted,
+                        'temperature_value': temperature_value_formatted,
+                        'timestamp': timestamp
+                    }
+
                     if existing_document:
-                        humidity_value_formatted = f'{humidity_value:.2f}'
-                        temperature_value_formatted = f'{temperature_value:.2f}'
-                        timestamp = datetime.now()
-                        doc = {
-                            'humidity_value': humidity_value_formatted,
-                            'temperature_value': temperature_value_formatted,
-                            'timestamp': timestamp
-                        }
                         update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
                         if update_result.modified_count > 0:
                             print("Sensor data added successfully.")
@@ -250,14 +268,84 @@ def combined_post(request):
 
                             return JsonResponse({'message': 'humidity and temperature data received successfully'}, status=200)
                         else:
-                            print("No document matching the filter criteria found.")
+                            print("Failed to update sensor data.")
                             return JsonResponse({'error': 'Failed to update sensor data'}, status=500)
                     else:
-                        print("No document matching the filter criteria found. Request rejected.")
-                        return JsonResponse({'error': 'No document found with the provided API_KEY'}, status=404)
+                        # Insert a new document if no existing document is found
+                        new_document = {
+                            'API_KEY': API_KEY,
+                            'sensor_name': '',
+                            'sensor_type': 'DHT11',
+                            'sensor_data': [doc]
+                        }
+                        collection.insert_one(new_document)
+                        return JsonResponse({'message': 'New DHT11 sensor document created'}, status=201)
                 else:
                     return JsonResponse({'error': 'Database connection error'}, status=500)
 
+            elif sensor_type == "NPK":
+                nitrogen_value = data.get('nitrogen')
+                phosphorous_value = data.get('phosphorous')
+                potassium_value = data.get('potassium')
+                API_KEY = data.get('API_KEY')
+                print(f"Received nitrogen value: {nitrogen_value}")
+                print(f"Received phosphorous value: {phosphorous_value}")
+                print(f"Received potassium value: {potassium_value}")
+                print(f"Received API KEY: {API_KEY}")
+
+                if nitrogen_value is None or phosphorous_value is None or potassium_value is None or API_KEY is None:
+                    return JsonResponse({'error': 'Missing data or API_KEY'}, status=400)
+
+                db, collection = connect_to_mongodb('sensor', 'NPK')
+                if db is not None and collection is not None:
+                    filter_criteria = {'API_KEY': API_KEY}
+                    existing_document = collection.find_one(filter_criteria)
+                    nitrogen_value_formatted = f'{nitrogen_value:.2f}'
+                    phosphorous_value_formatted = f'{phosphorous_value:.2f}'
+                    potassium_value_formatted = f'{potassium_value:.2f}'
+                    timestamp = datetime.now()
+                    doc = {
+                        'nitrogen_value': nitrogen_value_formatted,
+                        'phosphorous_value': phosphorous_value_formatted,
+                        'potassium_value':potassium_value_formatted,
+                        'timestamp': timestamp
+                    }
+
+                    if existing_document:
+                        update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
+                        if update_result.modified_count > 0:
+                            print("Sensor data added successfully.")
+                            aws_websocket_url = "wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/"
+                            message = {
+                                'action': 'sendMessage',
+                                'to': API_KEY,
+                                'message': {
+                                    'sensor_type': 'NPK',
+                                    'nitrogen_value': nitrogen_value_formatted,
+                                    'phosphorous_value': phosphorous_value_formatted,
+                                    'potassium_value':potassium_value_formatted,
+                                    'timestamp': timestamp.strftime('%d-%m-%Y')
+                                }
+                            }
+                            asyncio.run(send_websocket_message(aws_websocket_url, message))
+
+                            return JsonResponse({'message': 'Nitrogen, Phosphorous, and Potassium  data received successfully'}, status=200)
+                        else:
+                            print("Failed to update sensor data.")
+                            return JsonResponse({'error': 'Failed to update sensor data'}, status=500)
+                    else:
+                        # Insert a new document if no existing document is found
+                        new_document = {
+                            'API_KEY': API_KEY,
+                            'sensor_name': '',
+                            'sensor_type': 'NPK',
+                            'sensor_data': [doc]
+                        }
+                        collection.insert_one(new_document)
+                        return JsonResponse({'message': 'New DHT11 sensor document created'}, status=201)
+                else:
+                    return JsonResponse({'error': 'Database connection error'}, status=500)
+                
             elif sensor_type == "ph_sensor":
                 ph_value = data.get('phValue')
                 API_KEY = data.get('API_KEY')
@@ -272,43 +360,107 @@ def combined_post(request):
                 if db is not None and collection is not None:
                     filter_criteria = {'API_KEY': API_KEY}
                     existing_document = collection.find_one(filter_criteria)
+                    ph_value_formatted = f'{ph_value:.4f}'
+                    timestamp = datetime.now()
+                    doc = {
+                        'ph_value': ph_value_formatted,
+                        'timestamp': timestamp
+                    }
+
                     if existing_document:
-                        ph_value_formatted = f'{ph_value:.4f}'
-                        timestamp = datetime.now()
-                        doc = {
-                            'ph_value': ph_value_formatted,
-                            'timestamp': timestamp
-                        }
                         update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
                         if update_result.modified_count > 0:
-                            aws_websocket_url = "wss://we4sgi2dw0.execute-api.ap-southeast-2.amazonaws.com/deployment/"
+                            aws_websocket_url = "wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/"
                             message = {
                                 'action': 'sendMessage',
                                 'to': API_KEY,
                                 'message': {
                                     'sensor_type': 'ph_sensor',
                                     'ph_value': ph_value_formatted,
-                                    'timestamp': timestamp.strftime('%d-%m-%Y %H:%M:%S')
+                                    'timestamp': timestamp.strftime('%d-%m-%Y')
                                 }
                             }
                             asyncio.run(send_websocket_message(aws_websocket_url, message))
                             print("Sensor data added successfully.")
                             return JsonResponse({'message': 'pH data received successfully'}, status=200)
                         else:
-                            print("No document matching the filter criteria found.")
+                            print("Failed to update sensor data.")
                             return JsonResponse({'error': 'Failed to update sensor data'}, status=500)
                     else:
-                        print("No document matching the filter criteria found. Request rejected.")
-                        return JsonResponse({'error': 'No document found with the provided API_KEY'}, status=404)
+                        # Insert a new document if no existing document is found
+                        new_document = {
+                            'API_KEY': API_KEY,
+                            'sensor_name': '',
+                            'sensor_type': 'ph_sensor',
+                            'sensor_data': [doc]
+                        }
+                        collection.insert_one(new_document)
+                        
+                        return JsonResponse({'message': 'New pH sensor document created'}, status=201)
                 else:
                     return JsonResponse({'error': 'Database connection error'}, status=500)
 
+            elif sensor_type == "rainfall":
+                rainfall_value = data.get('rainfallValue')
+                API_KEY = data.get('API_KEY')
+
+                if rainfall_value is None or API_KEY is None:
+                    return JsonResponse({'error': 'Missing rainfall value or API_KEY'}, status=400)
+
+                print(f"Received rainfall value: {rainfall_value}")
+                print(f"Received API KEY: {API_KEY}")
+
+                db, collection = connect_to_mongodb('sensor', 'rainfall')
+                if db is not None and collection is not None:
+                    filter_criteria = {'API_KEY': API_KEY}
+                    existing_document = collection.find_one(filter_criteria)
+                    rainfall_value_formatted = f'{rainfall_value:.4f}'
+                    timestamp = datetime.now()
+                    doc = {
+                        'rainfall_value': rainfall_value_formatted,
+                        'timestamp': timestamp
+                    }
+
+                    if existing_document:
+                        update_result = collection.update_one(filter_criteria, {'$push': {'sensor_data': doc}})
+                        if update_result.modified_count > 0:
+                            aws_websocket_url = "wss://jzngfcdfgl.execute-api.ap-southeast-2.amazonaws.com/production/"
+                            message = {
+                                'action': 'sendMessage',
+                                'to': API_KEY,
+                                'message': {
+                                    'sensor_type': 'rainfall_sensor',
+                                    'rainfall_value': rainfall_value_formatted,
+                                    'timestamp': timestamp.strftime('%d-%m-%Y')
+                                }
+                            }
+                            asyncio.run(send_websocket_message(aws_websocket_url, message))
+                            print("Sensor data added successfully.")
+                            return JsonResponse({'message': 'rainfall data received successfully'}, status=200)
+                        else:
+                            print("Failed to update sensor data.")
+                            return JsonResponse({'error': 'Failed to update sensor data'}, status=500)
+                    else:
+                        # Insert a new document if no existing document is found
+                        new_document = {
+                            'API_KEY': API_KEY,
+                            'sensor_name': '',
+                            'sensor_type': 'rainfall',
+                            'sensor_data': [doc]
+                        }
+                        collection.insert_one(new_document)
+                        
+                        return JsonResponse({'message': 'New pH sensor document created'}, status=201)
+                else:
+                    return JsonResponse({'error': 'Database connection error'}, status=500)
+                
         except json.JSONDecodeError as e:
             return JsonResponse({'error': 'Invalid JSON format'}, status=400)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     else:
         return HttpResponseNotAllowed(['POST'])
+
 
 async def send_websocket_message(url, message):
     async with websockets.connect(url) as websocket:
