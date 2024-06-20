@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Home</title>
+    <title>Embedded Dashboard</title>
     {% load bootstrap5 %}
     {% bootstrap_css %}
     {% bootstrap_javascript %}
@@ -17,7 +17,8 @@
     <div class="d-flex mt-2 border-2 mb-4">
         <div class="me-auto">
             <h3 class="mb-1">Dashboard: {{ channel_name }}</h3>
-            <h6>{{description}}</h6>
+            <h6>Description: {{description}}</h6>
+            <h6>Location: {{soil_location}}</h6>
         </div>
     </div>
     <div id="canvas" class="d-flex align-content-start flex-wrap justify-content-between">
@@ -58,12 +59,16 @@
 
     <script>
         // Define chart variables
-        let phChart = null, humidChart = null, tempChart = null;
+        let phChart = null, humidChart = null, tempChart = null, rainfallChart = null, nitrogenChart = null, phosphorousChart = null, potassiumChart = null;
         document.addEventListener("DOMContentLoaded", function() {
             const channelId = "{{ channel_id }}"; 
             let latest_ph = null;
             let latest_humidity = null;
             let latest_temperature = null;
+            let latest_rainfall = null;
+            let latest_nitrogen = null;
+            let latest_phosphorous = null;
+            let latest_potassium = null;
             // Show the spinners and messages before fetching data
             if ("{{ graph_count }}" > 0) {
                 document.getElementById('chart-spinner-container').style.display = 'block';
@@ -78,6 +83,10 @@
                     latest_ph = data.ph_values.length ? data.ph_values[data.ph_values.length - 1] : null;
                     latest_humidity = data.humid_values.length ? data.humid_values[data.humid_values.length - 1] : null;
                     latest_temperature = data.temp_values.length ? data.temp_values[data.temp_values.length - 1] : null;
+                    latest_rainfall = data.rainfall_values.length ? data.rainfall_values[data.rainfall_values.length - 1] : null;
+                    latest_nitrogen = data.nitrogen_values.length ? data.nitrogen_values[data.nitrogen_values.length - 1] : null;
+                    latest_phosphorous = data.phosphorous_values.length ? data.phosphorous_values[data.phosphorous_values.length - 1] : null;
+                    latest_potassium = data.potassium_values.length ? data.potassium_values[data.potassium_values.length - 1] : null;
 
                     // Hide the spinners and messages after fetching data
                     document.getElementById('chart-spinner-container').style.display = 'none';
@@ -86,11 +95,15 @@
                     // Extract data for charts and table
                     const phData = data.ph_values || [];
                     const timestamps = data.timestamps || [];
+                    const rainfallData = data.rainfall_values || [];
+                    const rainfall_timestamps = data.rainfall_timestamps || [];
                     const humidData = data.humid_values || [];
+                    const nitrogenData = data.nitrogen_values || [];
+                    const phosphorousData = data.phosphorous_values || [];
+                    const potassiumData = data.potassium_values || [];
                     const tempData = data.temp_values || [];
                     const timestamps_temp_humid = data.timestamps_humid_temp || [];
-        
-                    
+                    const timestamps_NPK = data.timestamps_NPK || [];
         
                     // Check if there is any data to show charts
                     if (phData.length === 0 && humidData.length === 0 && tempData.length === 0) {
@@ -111,7 +124,20 @@
                             phChart = createChart(phCanvas.id, phData, timestamps, 'PH Value');
                             addDropdown(phCanvasContainer, phChart);
                         }
-        
+                        
+                        if (rainfallData.length > 0) {
+                            const rainfallCanvasContainer = document.createElement('div');
+                            rainfallCanvasContainer.className = 'canvas-container';
+                            const rainfallCanvas = document.createElement('canvas');
+                            rainfallCanvas.id = 'rainfallChart';
+                            rainfallCanvas.width = 450;
+                            rainfallCanvas.height = 400;
+                            rainfallCanvasContainer.appendChild(rainfallCanvas);
+                            document.getElementById('canvas').appendChild(rainfallCanvasContainer);
+                            rainfallChart = createChart(rainfallCanvas.id, rainfallData, rainfall_timestamps, 'Rainfall Value');
+                            addDropdown(rainfallCanvasContainer, rainfallChart);
+                        }
+
                         if (humidData.length > 0) {
                             const humidCanvasContainer = document.createElement('div');
                             humidCanvasContainer.className = 'canvas-container';
@@ -136,6 +162,45 @@
                             document.getElementById('canvas').appendChild(tempCanvasContainer);
                             tempChart = createChart(tempCanvas.id, tempData, timestamps_temp_humid, 'Temperature Value');
                             addDropdown(tempCanvasContainer, tempChart);
+                        }
+
+                        if (nitrogenData.length > 0) {
+                            const nitrogenCanvasContainer = document.createElement('div');
+                            nitrogenCanvasContainer.className = 'canvas-container';
+                            const nitrogenCanvas = document.createElement('canvas');
+                            nitrogenCanvas.id = 'nitrogenChart';
+                            nitrogenCanvas.width = 450;
+                            nitrogenCanvas.height = 400;
+                            nitrogenCanvasContainer.appendChild(nitrogenCanvas);
+                            document.getElementById('canvas').appendChild(nitrogenCanvasContainer);
+                            nitrogenChart = createChart(nitrogenCanvas.id, nitrogenData, timestamps_NPK, 'Nitrogen Value');
+                            addDropdown(nitrogenCanvasContainer, nitrogenChart);
+                        }
+                        
+                        if (phosphorousData.length > 0) {
+                            const phosphorousCanvasContainer = document.createElement('div');
+                            phosphorousCanvasContainer.className = 'canvas-container';
+                            const phosphorousCanvas = document.createElement('canvas');
+                            phosphorousCanvas.id = 'phosphorousChart';
+                            phosphorousCanvas.width = 450;
+                            phosphorousCanvas.height = 400;
+                            phosphorousCanvasContainer.appendChild(phosphorousCanvas);
+                            document.getElementById('canvas').appendChild(phosphorousCanvasContainer);
+                            phosphorousChart = createChart(phosphorousCanvas.id, phosphorousData, timestamps_NPK, 'phosphorous Value');
+                            addDropdown(phosphorousCanvasContainer, phosphorousChart);
+                        }
+                        
+                        if (potassiumData.length > 0) {
+                            const potassiumCanvasContainer = document.createElement('div');
+                            potassiumCanvasContainer.className = 'canvas-container';
+                            const potassiumCanvas = document.createElement('canvas');
+                            potassiumCanvas.id = 'potassiumChart';
+                            potassiumCanvas.width = 450;
+                            potassiumCanvas.height = 400;
+                            potassiumCanvasContainer.appendChild(potassiumCanvas);
+                            document.getElementById('canvas').appendChild(potassiumCanvasContainer);
+                            potassiumChart = createChart(potassiumCanvas.id, potassiumData, timestamps_NPK, 'Potassium Value');
+                            addDropdown(potassiumCanvasContainer, potassiumChart);
                         }
                     }
         
@@ -187,11 +252,23 @@
                                 updateTemperatureChart(messageContent);
                                 latest_temperature = messageContent.temperature_value;
                                 latest_humidity = messageContent.humidity_value;
-                                updateCropSuggestions(latest_ph, latest_temperature, latest_humidity);
+                                updateCropSuggestions(latest_ph, latest_temperature, latest_humidity, latest_rainfall, latest_nitrogen, latest_phosphorous, latest_potassium);
                             } else if (messageContent.sensor_type === 'ph_sensor') {
                                 updatePhChart(messageContent);
                                 latest_ph = messageContent.ph_value;
-                                updateCropSuggestions(latest_ph, latest_temperature, latest_humidity);
+                                updateCropSuggestions(latest_ph, latest_temperature, latest_humidity, latest_rainfall, latest_nitrogen, latest_phosphorous, latest_potassium);
+                            } else if (messageContent.sensor_type === 'NPK'){
+                                updateNitrogenChart(messageContent);
+                                updatephosphorousChart(messageContent);
+                                updatePotassiumChart(messageContent);
+                                latest_nitrogen=messageContent.nitrogen_value;
+                                latest_phosphorous=messageContent.phosphorous_value;
+                                latest_potassium=messageContent.potassium_value;
+                                updateCropSuggestions(latest_ph, latest_temperature, latest_humidity, latest_rainfall, latest_nitrogen, latest_phosphorous, latest_potassium);
+                            }else if(messageContent.sensor_type === "rainfall_sensor"){
+                                updateRainfallChart(messageContent);
+                                latest_rainfall = messageContent.rainfall_value;
+                                updateCropSuggestions(latest_ph, latest_temperature, latest_humidity, latest_rainfall, latest_nitrogen, latest_phosphorous, latest_potassium);
                             }
                         }
                     };
@@ -307,6 +384,39 @@
             console.log('Updating temperature chart with data:', data);
         }
         
+        function updatephosphorousChart(data) {
+            if (!phosphorousChart) {
+                console.error('phosphorousChart is not defined');
+                return;
+            }
+            phosphorousChart.data.labels.push(data.timestamp);
+            phosphorousChart.data.datasets[0].data.push(parseFloat(data.phosphorous_value));
+            phosphorousChart.update();
+            console.log('Updating temperature chart with data:', data);
+        }
+        
+        function updatePotassiumChart(data) {
+            if (!potassiumChart) {
+                console.error('potassiumChart is not defined');
+                return;
+            }
+            potassiumChart.data.labels.push(data.timestamp);
+            potassiumChart.data.datasets[0].data.push(parseFloat(data.potassium_value));
+            potassiumChart.update();
+            console.log('Updating temperature chart with data:', data);
+        }
+        
+        function updateNitrogenChart(data) {
+            if (!nitrogenChart) {
+                console.error('nitrogenChart is not defined');
+                return;
+            }
+            nitrogenChart.data.labels.push(data.timestamp);
+            nitrogenChart.data.datasets[0].data.push(parseFloat(data.nitrogen_value));
+            nitrogenChart.update();
+            console.log('Updating temperature chart with data:', data);
+        }
+        
         function updatePhChart(data) {
             if (!phChart) {
                 console.error('phChart is not defined');
@@ -318,7 +428,18 @@
             console.log('Updating pH chart with data:', data);
         }        
         
-        function updateCropSuggestions(ph, temperature, humidity) {
+        function updateRainfallChart(data) {
+            if (!rainfallChart) {
+                console.error('rainfallChart is not defined');
+                return;
+            }
+            rainfallChart.data.labels.push(data.timestamp);
+            rainfallChart.data.datasets[0].data.push(parseFloat(data.rainfall_value));
+            rainfallChart.update();
+            console.log('Updating rainfall chart with data:', data);
+        }  
+
+        function updateCropSuggestions(ph, temperature, humidity, rainfall, nitrogen, phosphorous, potassium) {
             fetch(`get_crop_suggestions/`, {
                 method: 'POST',
                 headers: {
@@ -327,7 +448,11 @@
                 body: JSON.stringify({
                     ph: ph,
                     temperature: temperature,
-                    humidity: humidity
+                    humidity: humidity,
+                    rainfall:rainfall,
+                    nitrogen:nitrogen,
+                    phosphorous:phosphorous,
+                    potassium:potassium
                 })
             })
             .then(response => response.json())
@@ -345,7 +470,6 @@
                     row.appendChild(accuracyCell);
                     cropRecommendationsContainer.appendChild(row);
                 });
-                console.log("cropRecommendationsContainer")
             })
             .catch(error => {
                 console.error('Error fetching crop suggestions:', error);
