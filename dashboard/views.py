@@ -272,6 +272,7 @@ PLANTFEED_SHARING_URL="https://f8a5-2001-d08-1289-3b7b-6503-ab7b-e782-1c9a.ngrok
 PLANTFEED_SHARING_API_PATH=PLANTFEED_SHARING_URL+"group/PlantLink-Graph-API"
 
 # To make channel to public and send API to Plantfeed - DONE
+@csrf_exempt
 def share_channel(request, channel_id):
     _id = ObjectId(channel_id)
     db, collection = connect_to_mongodb('Channel', 'dashboard')
@@ -289,6 +290,7 @@ def share_channel(request, channel_id):
             if response.status_code == 200:
                 return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
             else:
+                return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
                 return JsonResponse({"error": "Failed to share channel"}, status=500)
         else:
             return JsonResponse({"success": False, "error": "Document not found"}, status=404)
