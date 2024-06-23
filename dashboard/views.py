@@ -282,7 +282,8 @@ def share_channel(request, channel_id):
         if channel:
             plantfeed_link = PLANTFEED_SHARING_API_PATH
             channel_data = {
-                "channel_id": str(_id),
+                "channel_id": "4",
+                    # "channel_id": _id,
                 "userid": request.COOKIES.get('userid', ''),
                 "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/"
             }
@@ -309,7 +310,8 @@ def share_ph_chart(request, channel_id, start_date, end_date, chart_name):
             print("found ph chart channel")
             plantfeed_link = PLANTFEED_SHARING_API_PATH
             channel_data = {
-                "channel_id": str(_id),
+                "channel_id": "4",
+                    # "channel_id": _id,
                 "userid": request.COOKIES.get('userid', ''),
                 "chart_type": "ph",
                 "chart_name": chart_name,
@@ -340,7 +342,8 @@ def share_humidity_chart(request,channel_id,start_date, end_date, chart_name):
         if channel:
             plantfeed_link=PLANTFEED_SHARING_API_PATH
             channel_data = {
-                "channel_id": str(_id),
+                "channel_id": "4",
+                    # "channel_id": _id,
                 # "userid": request.COOKIES.get('userid', ''),
                 "userid": "4",
                 "chart_type":"humidity",
@@ -369,12 +372,13 @@ def share_temperature_chart(request,channel_id,start_date, end_date, chart_name)
         if channel:
             plantfeed_link=PLANTFEED_SHARING_API_PATH
             channel_data = {
-                "channel_id": _id,
+                "channel_id": "4",
+                    # "channel_id": _id,
                 "userid": request.COOKIES['userid'],
                 "chart_type":"temperature",
-                "start_date":{start_date},
-                "end_date":{end_date},
-                "chart_name":{chart_name},
+                "start_date":start_date,
+                "end_date":end_date,
+                "chart_name":chart_name,
                 # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
                 "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/temperatureChart/{start_date}/{end_date}/"
             }
@@ -398,7 +402,8 @@ def share_rainfall_chart(request,channel_id,start_date, end_date, chart_name):
         if channel:
             plantfeed_link=PLANTFEED_SHARING_API_PATH
             channel_data = {
-                "channel_id": _id,
+                "channel_id": "4",
+                    # "channel_id": _id,
                 "userid": request.COOKIES['userid'],
                 "chart_type":"rainfall",
                 "start_date":{start_date},
@@ -427,12 +432,13 @@ def share_nitrogen_chart(request,channel_id,start_date, end_date, chart_name):
         if channel:
             plantfeed_link=PLANTFEED_SHARING_API_PATH
             channel_data = {
-                "channel_id": _id,
+                "channel_id": "4",
+                    # "channel_id": _id,
                 "userid": request.COOKIES['userid'],
                 "chart_type":"nitrogen",
-                "start_date":{start_date},
-                "end_date":{end_date},
-                "chart_name":{chart_name},
+                "start_date":start_date,
+                "end_date":end_date,
+                "chart_name":chart_name,
                 # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
                 "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/nitrogenChart/{start_date}/{end_date}/"
             }
@@ -456,12 +462,13 @@ def share_phosphorous_chart(request,channel_id,start_date, end_date, chart_name)
         if channel:
             plantfeed_link=PLANTFEED_SHARING_API_PATH
             channel_data = {
-                "channel_id": _id,
+                "channel_id": "4",
+                    # "channel_id": _id,,
                 "userid": request.COOKIES['userid'],
                 "chart_type":"phosphorous",
-                "start_date":{start_date},
-                "end_date":{end_date},
-                "chart_name":{chart_name},
+                "start_date":start_date,
+                "end_date":end_date,
+                "chart_name":chart_name,
                 # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
                 "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/phosphorousChart/{start_date}/{end_date}/"
             }
@@ -485,12 +492,13 @@ def share_potassium_chart(request,channel_id,start_date, end_date, chart_name):
         if channel:
             plantfeed_link=PLANTFEED_SHARING_API_PATH
             channel_data = {
-                "channel_id": _id,
+                "channel_id": "4",
+                    # "channel_id": _id,
                 "userid": request.COOKIES['userid'],
                 "chart_type":"potassium",
-                "start_date":{start_date},
-                "end_date":{end_date},
-                "chart_name":{chart_name},
+                "start_date":start_date,
+                "end_date":end_date,
+                "chart_name":chart_name,
                 # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
                 "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/potassiumChart/{start_date}/{end_date}/"
             }
@@ -519,7 +527,8 @@ def share_crop_table(request, channel_id, start_date, end_date, table_name):
             if result.modified_count > 0:
                 plantfeed_link = PLANTFEED_SHARING_API_PATH
                 table_data = {
-                    "channel_id": _id,
+                    "channel_id": "4",
+                    # "channel_id": _id,
                     "userid": request.COOKIES['userid'],
                     "table_name": table_name,
                     "start_date": start_date,
