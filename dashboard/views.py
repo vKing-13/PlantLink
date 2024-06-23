@@ -285,7 +285,7 @@ def share_channel(request, channel_id):
                 "channel_id": "4",
                     # "channel_id": _id,
                 "userid": request.COOKIES.get('userid', ''),
-                "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/"
+                "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/{channel_id}/"
             }
             response = requests.post(plantfeed_link, json=channel_data)
             if response.status_code == 200:
@@ -317,7 +317,7 @@ def share_ph_chart(request, channel_id, start_date, end_date, chart_name):
                 "chart_name": chart_name,
                 "start_date": start_date,
                 "end_date": end_date,
-                "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/phChart/{start_date}/{end_date}/"
+                "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/{channel_id}/phChart/{start_date}/{end_date}/"
             }
             response = requests.post(plantfeed_link, json=channel_data)
             if response.status_code == 200:
@@ -350,7 +350,7 @@ def share_humidity_chart(request,channel_id,start_date, end_date, chart_name):
                 "chart_name": chart_name,
                 "start_date": start_date,
                 "end_date": end_date,
-                "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/humidityChart/{start_date}/{end_date}/"
+                "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/{channel_id}/humidityChart/{start_date}/{end_date}/"
             }
             response = requests.post(plantfeed_link,json=channel_data)
             if response.status_code == 200:
@@ -379,8 +379,8 @@ def share_temperature_chart(request,channel_id,start_date, end_date, chart_name)
                 "start_date":start_date,
                 "end_date":end_date,
                 "chart_name":chart_name,
-                # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
-                "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/temperatureChart/{start_date}/{end_date}/"
+                # "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
+                "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/{channel_id}/temperatureChart/{start_date}/{end_date}/"
             }
             response = requests.post(plantfeed_link,json=channel_data)
             if response.status_code == 200:
@@ -409,8 +409,8 @@ def share_rainfall_chart(request,channel_id,start_date, end_date, chart_name):
                 "start_date":{start_date},
                 "end_date":{end_date},
                 "chart_name":{chart_name},
-                # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
-                "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/rainfallChart/{start_date}/{end_date}/"
+                # "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
+                "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/{channel_id}/rainfallChart/{start_date}/{end_date}/"
             }
             response = requests.post(plantfeed_link,json=channel_data)
             if response.status_code == 200:
@@ -439,8 +439,8 @@ def share_nitrogen_chart(request,channel_id,start_date, end_date, chart_name):
                 "start_date":start_date,
                 "end_date":end_date,
                 "chart_name":chart_name,
-                # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
-                "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/nitrogenChart/{start_date}/{end_date}/"
+                # "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
+                "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/{channel_id}/nitrogenChart/{start_date}/{end_date}/"
             }
             response = requests.post(plantfeed_link,json=channel_data)
             if response.status_code == 200:
@@ -469,8 +469,8 @@ def share_phosphorous_chart(request,channel_id,start_date, end_date, chart_name)
                 "start_date":start_date,
                 "end_date":end_date,
                 "chart_name":chart_name,
-                # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
-                "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/phosphorousChart/{start_date}/{end_date}/"
+                # "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
+                "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/{channel_id}/phosphorousChart/{start_date}/{end_date}/"
             }
             response = requests.post(plantfeed_link,json=channel_data)
             if response.status_code == 200:
@@ -499,8 +499,8 @@ def share_potassium_chart(request,channel_id,start_date, end_date, chart_name):
                 "start_date":start_date,
                 "end_date":end_date,
                 "chart_name":chart_name,
-                # "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
-                "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/potassiumChart/{start_date}/{end_date}/"
+                # "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/662e17d552a86a39e8091cc2/humidityChart/2024-03-05/2024-06-18/"
+                "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/{channel_id}/potassiumChart/{start_date}/{end_date}/"
             }
             response = requests.post(plantfeed_link,json=channel_data)
             if response.status_code == 200:
@@ -533,7 +533,7 @@ def share_crop_table(request, channel_id, start_date, end_date, table_name):
                     "table_name": table_name,
                     "start_date": start_date,
                     "end_date": end_date,
-                    "embed_link": f"https://pythonanywhere.com/mychannel/embed/channel/{channel_id}/cropTable/{start_date}/{end_date}/"
+                    "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/{channel_id}/cropTable/{start_date}/{end_date}/"
                 }
                 response = requests.post(plantfeed_link, json=table_data)
                 if response.status_code == 200:
