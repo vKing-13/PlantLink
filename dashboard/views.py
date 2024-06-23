@@ -268,7 +268,7 @@ def sharedDashboard(request, channel_id):
         print("Error connecting to MongoDB.")
 
 # DECLARE PLANTFEED URL HERE
-PLANTFEED_SHARING_URL="https://f8a5-2001-d08-1289-3b7b-6503-ab7b-e782-1c9a.ngrok-free.app/"
+PLANTFEED_SHARING_URL="https://5e03-161-139-102-63.ngrok-free.app/"
 PLANTFEED_SHARING_API_PATH=PLANTFEED_SHARING_URL+"group/PlantLink-Graph-API"
 
 # To make channel to public and send API to Plantfeed - DONE
