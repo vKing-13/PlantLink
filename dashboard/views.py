@@ -290,7 +290,7 @@ def share_channel(request, channel_id):
             if response.status_code == 200:
                 return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
             else:
-                return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
+                # return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
                 return JsonResponse({"error": "Failed to share channel"}, status=500)
         else:
             return JsonResponse({"success": False, "error": "Document not found"}, status=404)
