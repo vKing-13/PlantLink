@@ -1,5 +1,6 @@
 from django.http import HttpResponseRedirect, JsonResponse
 from django.shortcuts import redirect, render
+from django.urls import reverse
 import requests
 
 def home(request): 
@@ -42,7 +43,7 @@ def logPlantFeed(request):
             #     warning_message = True
             #     return render(request, 'logPlantFeed.html', {'warning_message': warning_message})
 
-            response = HttpResponseRedirect('/mychannel/')  # Redirect to 'channels' URL after successful login
+            response = HttpResponseRedirect(reverse('home'))  # Redirect to 'channels' URL after successful login
             response.set_cookie('username', "hafiy")
             response.set_cookie('email', "hafiy@gmail.com")
             response.set_cookie('userlevel', "manager")
