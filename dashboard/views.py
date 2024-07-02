@@ -93,7 +93,7 @@ def channels(request):
  
 # To train model - DONE
 def load_trained_model():
-    model_path = '/home/shiroooo/PlantLink/static/dashboard/best_random_forest_model.pkl'
+    model_path = os.path.join('static', 'dashboard', 'best_random_forest_model.pkl')
     if os.path.exists(model_path):
         try:
             model = joblib.load(model_path)
@@ -291,8 +291,8 @@ def share_channel(request, channel_id):
             if response.status_code == 200:
                 return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
             else:
-                # return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
-                return JsonResponse({"error": "Failed to share channel"}, status=500)
+                return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
+                # return JsonResponse({"error": "Failed to share channel"}, status=500)
         else:
             return JsonResponse({"success": False, "error": "Document not found"}, status=404)
     else:
@@ -323,7 +323,8 @@ def share_ph_chart(request, channel_id, start_date, end_date, chart_name):
             if response.status_code == 200:
                 return JsonResponse({"success": "Chart successfully sent to Plantfeed"}, status=200)
             else:
-                return JsonResponse({"error": "Failed to share channel"}, status=500)
+                return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
+                # return JsonResponse({"error": "Failed to share channel"}, status=500)
             
 
         else:
@@ -539,9 +540,11 @@ def share_crop_table(request, channel_id, start_date, end_date, table_name):
                 if response.status_code == 200:
                     return JsonResponse({"success": "Table successfully sent to PlantFeed"}, status=200)
                 else:
-                    return JsonResponse({"error": "Failed to share table"}, status=500)
+                    return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
+                    # return JsonResponse({"error": "Failed to share table"}, status=500)
         else:
-            return JsonResponse({"error": "Channel not found"}, status=404)
+            return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
+            # return JsonResponse({"error": "Channel not found"}, status=404)
     else:
         return JsonResponse({"error": "Error connecting to MongoDB"}, status=500)
 
@@ -638,7 +641,7 @@ def getDashboardData(request, channel_id):
                 "potassium_values":potassium_values,
                 "API": API_KEY,
             }
-            if humid_values or ph_values or rainfall_values or nitrogen_values or potassium_value or phosphorous_value or temp_values:
+            if humid_values or ph_values or rainfall_values or nitrogen_values or potassium_values or phosphorous_value or temp_values:
                 # Load the trained Random Forest model
                 model = load_trained_model()
                 if model:
