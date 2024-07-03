@@ -14,6 +14,13 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.views.decorators.csrf import csrf_exempt
 # Create your views here.
+from concurrent.futures import ThreadPoolExecutor
+def check_sensor(collection_name, sensor_api):
+    db, collection = connect_to_mongodb('sensor', collection_name)
+    if db is not None and collection is not None:
+        sensor = collection.find_one({"API_KEY": sensor_api})
+        return 1 if sensor else 0
+    return 0
 
 # TO VIEW CHANNELS LIST - DONE
 def channels(request):
@@ -33,32 +40,36 @@ def channels(request):
                     sensor_api = channel.get('API_KEY', '')
 
                     # Check sensors in DHT11
-                    if sensor_api:
-                        dht_db, dht_collection = connect_to_mongodb('sensor', 'DHT11')
-                        if dht_db is not None and dht_collection is not None:
-                            dht_sensor = dht_collection.find_one({"API_KEY": sensor_api})
-                            if dht_sensor:
-                                sensor_count += 1
-                        NPK_db, NPK_collection = connect_to_mongodb('sensor', 'NPK')
-                        if NPK_db is not None and NPK_collection is not None:
-                            NPK_sensor = NPK_collection.find_one({"API_KEY": sensor_api})
-                            if NPK_sensor:
-                                sensor_count += 1
+                    # if sensor_api:
+                    #     dht_db, dht_collection = connect_to_mongodb('sensor', 'DHT11')
+                    #     if dht_db is not None and dht_collection is not None:
+                    #         dht_sensor = dht_collection.find_one({"API_KEY": sensor_api})
+                    #         if dht_sensor:
+                    #             sensor_count += 1
+                    #     NPK_db, NPK_collection = connect_to_mongodb('sensor', 'NPK')
+                    #     if NPK_db is not None and NPK_collection is not None:
+                    #         NPK_sensor = NPK_collection.find_one({"API_KEY": sensor_api})
+                    #         if NPK_sensor:
+                    #             sensor_count += 1
 
-                        # Check sensors in PHSensor
-                        ph_db, ph_collection = connect_to_mongodb('sensor', 'PHSensor')
-                        if ph_db is not None and ph_collection is not None:
-                            ph_sensor = ph_collection.find_one({"API_KEY": sensor_api})
-                            if ph_sensor:
-                                sensor_count += 1
+                    #     # Check sensors in PHSensor
+                    #     ph_db, ph_collection = connect_to_mongodb('sensor', 'PHSensor')
+                    #     if ph_db is not None and ph_collection is not None:
+                    #         ph_sensor = ph_collection.find_one({"API_KEY": sensor_api})
+                    #         if ph_sensor:
+                    #             sensor_count += 1
 
-                        # Check sensors in PHSensor
-                        rainfall_db, rainfall_collection = connect_to_mongodb('sensor', 'rainfall')
-                        if rainfall_db is not None and rainfall_collection is not None:
-                            rainfall_sensor = rainfall_collection.find_one({"API_KEY": sensor_api})
-                            if rainfall_sensor:
-                                sensor_count += 1
-
+                    #     # Check sensors in PHSensor
+                    #     rainfall_db, rainfall_collection = connect_to_mongodb('sensor', 'rainfall')
+                    #     if rainfall_db is not None and rainfall_collection is not None:
+                    #         rainfall_sensor = rainfall_collection.find_one({"API_KEY": sensor_api})
+                    #         if rainfall_sensor:
+                    #             sensor_count += 1
+                    sensor_collections = ['DHT11', 'NPK', 'PHSensor', 'rainfall']
+                    with ThreadPoolExecutor() as executor:
+                        futures = [executor.submit(check_sensor, collection, sensor_api) for collection in sensor_collections]
+                        for future in futures:
+                            sensor_count += future.result()
                     channel_data = {
                         'channel_id': str(channel.get('_id')),
                         'channel_name': channel.get('channel_name', ' '),
@@ -94,6 +105,7 @@ def channels(request):
 # To train model - DONE
 def load_trained_model():
     model_path = os.path.join('static', 'dashboard', 'best_random_forest_model.pkl')
+    # model_path = '/home/shiroooo/PlantLink/static/dashboard/best_random_forest_model.pkl'
     if os.path.exists(model_path):
         try:
             model = joblib.load(model_path)
