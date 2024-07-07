@@ -38,33 +38,6 @@ def channels(request):
                 for channel in channels:
                     sensor_count = 0
                     sensor_api = channel.get('API_KEY', '')
-
-                    # Check sensors in DHT11
-                    # if sensor_api:
-                    #     dht_db, dht_collection = connect_to_mongodb('sensor', 'DHT11')
-                    #     if dht_db is not None and dht_collection is not None:
-                    #         dht_sensor = dht_collection.find_one({"API_KEY": sensor_api})
-                    #         if dht_sensor:
-                    #             sensor_count += 1
-                    #     NPK_db, NPK_collection = connect_to_mongodb('sensor', 'NPK')
-                    #     if NPK_db is not None and NPK_collection is not None:
-                    #         NPK_sensor = NPK_collection.find_one({"API_KEY": sensor_api})
-                    #         if NPK_sensor:
-                    #             sensor_count += 1
-
-                    #     # Check sensors in PHSensor
-                    #     ph_db, ph_collection = connect_to_mongodb('sensor', 'PHSensor')
-                    #     if ph_db is not None and ph_collection is not None:
-                    #         ph_sensor = ph_collection.find_one({"API_KEY": sensor_api})
-                    #         if ph_sensor:
-                    #             sensor_count += 1
-
-                    #     # Check sensors in PHSensor
-                    #     rainfall_db, rainfall_collection = connect_to_mongodb('sensor', 'rainfall')
-                    #     if rainfall_db is not None and rainfall_collection is not None:
-                    #         rainfall_sensor = rainfall_collection.find_one({"API_KEY": sensor_api})
-                    #         if rainfall_sensor:
-                    #             sensor_count += 1
                     sensor_collections = ['DHT11', 'NPK', 'PHSensor', 'rainfall']
                     with ThreadPoolExecutor() as executor:
                         futures = [executor.submit(check_sensor, collection, sensor_api) for collection in sensor_collections]
@@ -117,60 +90,75 @@ def load_trained_model():
         print("Model file not found.")
         return None
 
-# To view dashboard - DONE
+from concurrent.futures import ThreadPoolExecutor
+
+def connect_and_find(collection_name, api_key):
+    db, collection = connect_to_mongodb('sensor', collection_name)
+    if db is not None and collection is not None:
+        return collection.find_one({"API_KEY": api_key})
+    return None
+
+def get_channel_details(channel):
+    return {
+        "channel_name": channel.get('channel_name', ''),
+        "description": channel.get('description', ''),
+        "sensor": channel.get('sensor', ''),
+        "API": channel.get("API_KEY", ''),
+        "allow_api": channel.get("allow_API", ''),
+        "soil_location": channel.get("location", ''),
+        "privacy": channel.get("privacy", '')
+    }
+
+def calculate_graph_count(api_key):
+    sensor_collections = {
+        'DHT11': 2,
+        'NPK': 3,
+        'PHSensor': 1,
+        'rainfall': 1
+    }
+    graph_count = 0
+    with ThreadPoolExecutor() as executor:
+        futures = {executor.submit(connect_and_find, collection, api_key): weight for collection, weight in sensor_collections.items()}
+        for future in futures:
+            if future.result():
+                graph_count += futures[future]
+    return graph_count
+
 def view_channel_sensor(request, channel_id):
-    if 'username' in request.COOKIES:
-        _id = ObjectId(channel_id)
-        db, collection = connect_to_mongodb('Channel', 'dashboard')
-        if db is not None and collection is not None:
-            channel = collection.find_one({"_id": _id})
-
-            if channel:
-                print("Found channel")
-                channel_name = channel.get('channel_name', '')
-                description = channel.get('description', '')
-                sensor = channel.get('sensor', '')
-                API=channel.get("API_KEY", '')
-                allow_api=channel.get("allow_API", '')
-                soil_location=channel.get("location", '')
-                privacy=channel.get("privacy", '')
-                graph_count=0
-                if API:
-                    db_humid_temp, collection_humid_temp = connect_to_mongodb('sensor', 'DHT11')
-                    humid_temp_data = collection_humid_temp.find_one({"API_KEY": API})
-                    if humid_temp_data:
-                        graph_count+=2
-                    db_NPK, collection_NPK = connect_to_mongodb('sensor', 'NPK')
-                    NPK_data = collection_NPK.find_one({"API_KEY": API})
-                    if NPK_data:
-                        graph_count+=3
-                    db_ph, collection_ph = connect_to_mongodb('sensor', 'PHSensor')
-                    ph_data = collection_ph.find_one({"API_KEY": API})
-                    if ph_data:
-                        graph_count+=1
-                    db_rainfall, collection_rainfall = connect_to_mongodb('sensor', 'rainfall')
-                    rainfall_data = collection_rainfall.find_one({"API_KEY": API})
-                    if ph_data:
-                        graph_count+=1
-                context = {
-                    "channel_name": channel_name,
-                    "description": description,
-                    "channel_id": channel_id,
-                    "API":API,
-                    "graph_count":graph_count,
-                    "allow_api":allow_api,
-                    "soil_location":soil_location,
-                    "privacy":privacy
-                }
-
-                return render(request, 'dashboard.html', context)
-            else:
-                return JsonResponse({"success": False, "error": "Document not found"})
-        else:
-            print("Error connecting to MongoDB.")
-        
-    else:
+    if 'username' not in request.COOKIES:
         return redirect('logPlantFeed')
+    
+    start_time = time.time()
+    _id = ObjectId(channel_id)
+    db, collection = connect_to_mongodb('Channel', 'dashboard')
+    if db is None or collection is None:
+        print("Error connecting to MongoDB.")
+        return JsonResponse({"success": False, "error": "Error connecting to MongoDB"}, status=500)
+    
+    channel = collection.find_one({"_id": _id})
+    if not channel:
+        return JsonResponse({"success": False, "error": "Document not found"}, status=404)
+
+    print("Found channel")
+    channel_details = get_channel_details(channel)
+    graph_count = calculate_graph_count(channel_details["API"])
+
+    context = {
+        "channel_name": channel_details["channel_name"],
+        "description": channel_details["description"],
+        "channel_id": channel_id,
+        "API": channel_details["API"],
+        "graph_count": graph_count,
+        "allow_api": channel_details["allow_api"],
+        "soil_location": channel_details["soil_location"],
+        "privacy": channel_details["privacy"]
+    }
+
+    end_time = time.time()
+    print("Execution time: {:.2f} seconds".format(end_time - start_time))
+
+    return render(request, 'dashboard.html', context)
+
 
 # To view embedded code dashboard
 def render_embed_code(request, channel_id):
@@ -311,10 +299,55 @@ def share_channel(request, channel_id):
         print("Error connecting to MongoDB.")
         return JsonResponse({"error": "Database connection error"}, status=500)
 
+import time
+# @csrf_exempt
+# def share_ph_chart(request, channel_id, start_date, end_date, chart_name):
+#     try:
+#         start_time = time.time()
+#         channel_data = get_channel_data(channel_id, chart_name, start_date, end_date, request)
+#         if not channel_data:
+#             return JsonResponse({"success": False, "error": "Document not found"}, status=404)
+
+#         plantfeed_link = PLANTFEED_SHARING_API_PATH
+#         response = requests.post(plantfeed_link, json=channel_data)
+        
+#         if response.status_code == 200:
+#             end_time = time.time()
+#             print("Execution time: {:.2f} seconds".format(end_time - start_time))
+#             return JsonResponse({"success": "Chart successfully sent to Plantfeed"}, status=200)
+#         else:
+#             end_time = time.time()
+#             print("Execution time: {:.2f} seconds".format(end_time - start_time))
+#             return JsonResponse({"success": "Chart successfully sent to Plantfeed"}, status=200)
+#             # return JsonResponse({"error": "Failed to share chart with Plantfeed"}, status=500)
+#     except Exception as e:
+#         return JsonResponse({"success": False, "error": str(e)}, status=500)
+
+# def get_channel_data(channel_id, chart_name, start_date, end_date, request):
+#     _id = ObjectId(channel_id)
+#     db, collection = connect_to_mongodb('Channel', 'dashboard')
+#     if db is not None and collection is not None:
+#         channel = collection.find_one({"_id": _id})
+#         if channel:
+#             print("found ph chart channel")
+#             return {
+#                 "channel_id": "4",  # Replace with _id if needed
+#                 "userid": request.COOKIES.get('userid', ''),
+#                 "chart_type": "ph",
+#                 "chart_name": chart_name,
+#                 "start_date": start_date,
+#                 "end_date": end_date,
+#                 "embed_link": f"https://shiroooo.pythonanywhere.com/mychannel/embed/channel/{channel_id}/phChart/{start_date}/{end_date}/"
+#             }
+#     else:
+#         print("Error connecting to MongoDB.")
+#     return None
+
 # TO SHARE PH CHART TO PLANTFEED - DONE
 @csrf_exempt
 def share_ph_chart(request, channel_id, start_date, end_date, chart_name):
     _id = ObjectId(channel_id)
+    start_time = time.time()
     db, collection = connect_to_mongodb('Channel', 'dashboard')
     if db is not None and collection is not None:
         channel = collection.find_one({"_id": _id})
@@ -333,8 +366,12 @@ def share_ph_chart(request, channel_id, start_date, end_date, chart_name):
             }
             response = requests.post(plantfeed_link, json=channel_data)
             if response.status_code == 200:
+                end_time = time.time()
+                print("Execution time: {:.2f} seconds".format(end_time - start_time))
                 return JsonResponse({"success": "Chart successfully sent to Plantfeed"}, status=200)
             else:
+                end_time = time.time()
+                print("Execution time: {:.2f} seconds".format(end_time - start_time))
                 return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
                 # return JsonResponse({"error": "Failed to share channel"}, status=500)
             
