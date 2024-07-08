@@ -213,13 +213,13 @@
             fetch(`/mychannel/${channelId}/get_dashboard_data/`)  // Correct the fetch URL
                 .then(response => response.json())
                 .then(data => {
-                    latest_ph = data.ph_values.length ? data.ph_values[data.ph_values.length - 1] : null;
-                    latest_humidity = data.humid_values.length ? data.humid_values[data.humid_values.length - 1] : null;
-                    latest_temperature = data.temp_values.length ? data.temp_values[data.temp_values.length - 1] : null;
-                    latest_rainfall = data.rainfall_values.length ? data.rainfall_values[data.rainfall_values.length - 1] : null;
-                    latest_nitrogen = data.nitrogen_values.length ? data.nitrogen_values[data.nitrogen_values.length - 1] : null;
-                    latest_phosphorous = data.phosphorous_values.length ? data.phosphorous_values[data.phosphorous_values.length - 1] : null;
-                    latest_potassium = data.potassium_values.length ? data.potassium_values[data.potassium_values.length - 1] : null;
+                    latest_ph = data.ph_values.length ? data.ph_values[data.ph_values.length - 1] : 0;
+                    latest_humidity = data.humid_values.length ? data.humid_values[data.humid_values.length - 1] : 0;
+                    latest_temperature = data.temp_values.length ? data.temp_values[data.temp_values.length - 1] : 0;
+                    latest_rainfall = data.rainfall_values.length ? data.rainfall_values[data.rainfall_values.length - 1] : 0;
+                    latest_nitrogen = data.nitrogen_values.length ? data.nitrogen_values[data.nitrogen_values.length - 1] : 0;
+                    latest_phosphorous = data.phosphorous_values.length ? data.phosphorous_values[data.phosphorous_values.length - 1] : 0;
+                    latest_potassium = data.potassium_values.length ? data.potassium_values[data.potassium_values.length - 1] : 0;
 
                     // Hide the spinners and messages after fetching data
                     document.getElementById('chart-spinner-container').style.display = 'none';
