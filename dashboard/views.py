@@ -690,7 +690,7 @@ def getDashboardData(request, channel_id):
                 "potassium_values":potassium_values,
                 "API": API_KEY,
             }
-            if humid_values or ph_values or rainfall_values or nitrogen_values or potassium_values or phosphorous_value or temp_values:
+            if humid_values or ph_values or rainfall_values or nitrogen_values or potassium_values or phosphorous_values or temp_values:
                 # Load the trained Random Forest model
                 model = load_trained_model()
                 if model:
