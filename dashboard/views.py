@@ -291,8 +291,8 @@ def share_channel(request, channel_id):
             if response.status_code == 200:
                 return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
             else:
-                return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
-                # return JsonResponse({"error": "Failed to share channel"}, status=500)
+                # return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
+                return JsonResponse({"error": "Failed to share channel"}, status=500)
         else:
             return JsonResponse({"success": False, "error": "Document not found"}, status=404)
     else:
@@ -372,8 +372,8 @@ def share_ph_chart(request, channel_id, start_date, end_date, chart_name):
             else:
                 end_time = time.time()
                 print("Execution time: {:.2f} seconds".format(end_time - start_time))
-                return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
-                # return JsonResponse({"error": "Failed to share channel"}, status=500)
+                # return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
+                return JsonResponse({"error": "Failed to share channel"}, status=500)
             
 
         else:
@@ -590,7 +590,7 @@ def share_crop_table(request, channel_id, start_date, end_date, table_name):
                     return JsonResponse({"success": "Table successfully sent to PlantFeed"}, status=200)
                 else:
                     return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
-                    # return JsonResponse({"error": "Failed to share table"}, status=500)
+                    return JsonResponse({"error": "Failed to share table"}, status=500)
         else:
             return JsonResponse({"success": " successfully sent to Plantfeed"}, status=200)
             # return JsonResponse({"error": "Channel not found"}, status=404)
